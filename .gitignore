@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Database
+*.db
+*.db-journal
+
+# Coverage
+coverage/
+.coverage
+.coverage.*
+
+# Testing
+.pytest_cache/
+
+# Node (frontend)
+node_modules/
+frontend/node_modules/

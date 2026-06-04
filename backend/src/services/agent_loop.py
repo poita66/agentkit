@@ -1,0 +1,129 @@
+import asyncio
+import json
+import logging
+
+from backend.src.db.session import create_step, get_run_by_id, get_session, update_run_cost, update_run_terminal
+from backend.src.services.guards import check_cost_cap, check_step_cap, check_stuck, hash_args
+from backend.src.services.llm import MockLLM
+from backend.src.services.tool_registry import ToolRegistry
+from backend.src.services.tool_runtime import ToolRuntime
+
+logger = logging.getLogger(__name__)
+
+
+async def run_agent_loop(
+    run_id: str,
+    goal: str,
+    max_steps: int,
+    max_cost_usd: float,
+    registry: ToolRegistry,
+    llm: MockLLM,
+):
+    """Execute the agent loop for a single run.
+
+    Steps:
+    1. Select candidate tools via registry
+    2. Call LLM with goal + past steps + tools
+    3. Dispatch tool calls via runtime
+    4. Check guards each iteration
+    5. Persist steps atomically
+    """
+    runtime = ToolRuntime(registry)
+    steps: list[dict] = []
+    recent_for_stuck: list[tuple[str, str]] = []
+    total_cost = 0.0
+    step_number = 0
+
+    try:
+        async with asyncio.timeout(60):
+            while True:
+                # Check guards before next step
+                terminated, reason = check_step_cap(len(steps), max_steps)
+                if terminated:
+                    await _finalize_run(run_id, reason)
+                    return
+
+                terminated, reason = check_cost_cap(total_cost, max_cost_usd)
+                if terminated:
+                    await _finalize_run(run_id, reason)
+                    return
+
+                # Select candidate tools
+                candidate_tools = registry.retrieve(goal)
+                tools_dict = [
+                    {"name": t.name, "description": t.description, "parameters": t.parameters} for t in candidate_tools
+                ]
+
+                # Call LLM
+                response = llm.call(goal, steps, tools_dict)
+
+                if response.get("type") == "final_answer":
+                    step_number += 1
+                    answer = response.get("answer", "")
+                    cost = response.get("cost", 0.0)
+                    total_cost += cost
+
+                    result_json = json.dumps({"answer": answer})
+                    async with get_session() as session:
+                        await create_step(session, run_id, step_number, None, None, result_json, cost)
+                        await update_run_cost(session, run_id, cost)
+                        await update_run_terminal(session, run_id, "succeeded")
+
+                    steps.append({"step_number": step_number, "tool_name": None, "result": result_json})
+                    logger.info("Run %s completed successfully with answer: %s", run_id, answer[:100])
+                    return
+
+                # Tool call
+                tool_name = response.get("tool_name")
+                arguments = response.get("arguments", {})
+                cost = response.get("cost", 0.0)
+                total_cost += cost
+
+                # Check stuck detection
+                args_hash = hash_args(arguments)
+                recent_for_stuck.append((tool_name, args_hash))
+                terminated, reason = check_stuck(recent_for_stuck)
+                if terminated:
+                    await _finalize_run(run_id, reason)
+                    return
+
+                # Execute tool
+                result = await runtime.execute(tool_name, arguments)
+
+                step_number += 1
+                result_json = json.dumps(result)
+                async with get_session() as session:
+                    await create_step(session, run_id, step_number, tool_name, json.dumps(arguments), result_json, cost)
+                    await update_run_cost(session, run_id, cost)
+
+                steps.append(
+                    {
+                        "step_number": step_number,
+                        "tool_name": tool_name,
+                        "arguments": arguments,
+                        "result": result,
+                    }
+                )
+
+                # If tool returned non-recoverable error, surface to LLM for next iteration
+                if not result.get("ok", True) and not result.get("error", {}).get("recoverable", False):
+                    logger.warning(
+                        "Non-recoverable error in run %s step %d: %s",
+                        run_id,
+                        step_number,
+                        result.get("error", {}).get("message"),
+                    )
+
+    except TimeoutError:
+        await _finalize_run(run_id, "timeout")
+        logger.info("Run %s timed out after 60s", run_id)
+    except Exception as e:
+        await _finalize_run(run_id, "error")
+        logger.error("Run %s failed with error: %s", run_id, e)
+
+
+async def _finalize_run(run_id: str, reason: str):
+    async with get_session() as session:
+        run = await get_run_by_id(session, run_id)
+        if run:
+            await update_run_terminal(session, run_id, reason)

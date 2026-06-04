@@ -1,0 +1,6 @@
+{
+  "responses": [
+    {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "Python best practices"}, "cost": 0.04},
+    {"type": "tool_call", "tool_name": "search_web", "arguments": {"query": "Python best practices"}, "cost": 0.04}
+  ]
+}

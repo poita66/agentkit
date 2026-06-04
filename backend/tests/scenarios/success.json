@@ -1,0 +1,7 @@
+{
+  "responses": [
+    {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "Python best practices"}, "cost": 0.04},
+    {"type": "tool_call", "tool_name": "summarize", "arguments": {"text": "PEP 8 style guide recommendations"}, "cost": 0.03},
+    {"type": "final_answer", "answer": "Python best practices include following PEP 8, using type hints, and writing comprehensive tests.", "cost": 0.02}
+  ]
+}
