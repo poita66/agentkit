@@ -1,7 +1,8 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from backend.src.services.tool_registry import ToolRegistry, Tool
+import pytest
+
+from backend.src.services.tool_registry import Tool, ToolRegistry
 from backend.src.services.tool_runtime import ToolRuntime
 
 
