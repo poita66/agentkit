@@ -8,12 +8,25 @@ const mockCreateRun = vi.hoisted(() => vi.fn());
 const mockGetRun = vi.hoisted(() => vi.fn());
 const mockGetRuns = vi.hoisted(() => vi.fn());
 const mockGetScenarios = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockGetTools = vi.hoisted(() => vi.fn().mockResolvedValue([
+  { name: 'search_docs', description: 'Search documentation and knowledge base for relevant information', parameters: {} },
+  { name: 'search_web', description: 'Search the web for current information and news', parameters: {} },
+  { name: 'read_file', description: 'Read the contents of a file from the filesystem', parameters: {} },
+  { name: 'write_file', description: 'Write content to a file on the filesystem', parameters: {} },
+  { name: 'calculate', description: 'Perform mathematical calculations and computations', parameters: {} },
+  { name: 'summarize', description: 'Summarize text content into key points', parameters: {} },
+  { name: 'translate', description: 'Translate text between languages', parameters: {} },
+  { name: 'query_database', description: 'Query a database for structured data', parameters: {} },
+  { name: 'send_email', description: 'Send an email message to a recipient', parameters: {} },
+  { name: 'list_files', description: 'List files and directories in a given path', parameters: {} },
+]));
 
 vi.mock('@/api/client', () => ({
   createRun: mockCreateRun,
   getRun: mockGetRun,
   getRuns: mockGetRuns,
   getScenarios: mockGetScenarios,
+  getTools: mockGetTools,
 }));
 
 function renderApp(initialEntries?: string[]) {

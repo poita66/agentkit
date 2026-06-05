@@ -31,6 +31,18 @@ _SCENARIO_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+@router.get("/tools")
+async def list_tools():
+    return [
+        {
+            "name": t.name,
+            "description": t.description,
+            "parameters": t.parameters,
+        }
+        for t in registry.list_tools()
+    ]
+
+
 @router.get("/scenarios")
 async def list_scenarios():
     if not os.environ.get("AGENT_MOCK_ENABLED"):
@@ -55,16 +67,26 @@ async def create_run_endpoint(req: RunCreate):
     max_steps = req.max_steps or 20
     max_cost_usd = req.max_cost_usd or 0.5
 
+    # Read caps from scenario file to override defaults
+    scenario_path = req.scenario or os.environ.get("AGENT_MOCK_SCENARIO")
+    if scenario_path:
+        if not scenario_path.endswith(".json"):
+            scenario_path = f"{_SCENARIOS_DIR}/{scenario_path}.json"
+        with open(scenario_path) as f:
+            scenario_data = json.load(f)
+        scenario_caps = scenario_data.get("caps", {})
+        if not req.max_steps:
+            max_steps = scenario_caps.get("max_steps", max_steps)
+        if not req.max_cost_usd:
+            max_cost_usd = scenario_caps.get("max_cost_usd", max_cost_usd)
+
     async with get_session() as session:
         run = await create_run(session, goal, max_steps, max_cost_usd)
 
     # Spawn agent loop if a mock scenario is specified (via request or env var).
-    scenario_path = req.scenario or os.environ.get("AGENT_MOCK_SCENARIO")
     if scenario_path:
         from backend.src.services.llm import MockLLM
 
-        if not scenario_path.endswith(".json"):
-            scenario_path = f"{_SCENARIOS_DIR}/{scenario_path}.json"
         llm = MockLLM(scenario_path)
         task = asyncio.create_task(run_agent_loop(run.id, goal, max_steps, max_cost_usd, registry, llm))
         _agent_tasks.append(task)

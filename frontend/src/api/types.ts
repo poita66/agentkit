@@ -11,7 +11,7 @@ export interface RunDetail {
   run_id: string;
   goal: string;
   status: 'running' | 'completed';
-  reason: 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | null;
+   reason: 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | 'tool_errors' | null;
   total_cost: number;
   max_steps: number;
   max_cost_usd: number;
@@ -51,4 +51,10 @@ export interface RunCreateResponse {
 export interface ScenarioInfo {
   name: string;
   description: string;
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
 }

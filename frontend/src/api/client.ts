@@ -82,3 +82,11 @@ export async function getRuns(
 export async function getScenarios(): Promise<Array<{ name: string; description: string }>> {
   return apiFetch('/runs/scenarios');
 }
+
+export async function getTools(): Promise<Array<{
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}>> {
+  return apiFetch('/runs/tools');
+}

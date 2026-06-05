@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ToolDefinition } from '../api/types';
 import { describeStep } from '../utils/formatStep';
 import { timeAgo } from '../utils/timeAgo';
 
@@ -14,12 +15,13 @@ interface StepDetail {
 interface StepCardProps {
   step: StepDetail;
   stepNumber: number;
+  tools?: ToolDefinition[];
 }
 
-export default function StepCard({ step, stepNumber }: StepCardProps) {
+export default function StepCard({ step, stepNumber, tools = [] }: StepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const isFinalAnswer = step.tool_name === null;
-  const summary = describeStep(step);
+  const summary = describeStep(step, tools);
 
   return (
     <article

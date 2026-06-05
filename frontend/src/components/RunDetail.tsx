@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useRun } from '../hooks/useRun';
+import { useTools } from '../hooks/useTools';
 import { describeOutcome } from '../utils/formatOutcome';
 import ErrorMessage from './ErrorMessage';
 import StatusBadge from './StatusBadge';
@@ -10,6 +11,7 @@ export default function RunDetail() {
   const { runId } = useParams<{ runId: string }>();
   const navigate = useNavigate();
   const { run, loading, error, refetch } = useRun(runId!);
+  const { tools } = useTools();
   const stepsEndRef = useRef<HTMLDivElement>(null);
   const prevStepCount = useRef(0);
 
@@ -102,7 +104,7 @@ export default function RunDetail() {
 
   const isRunning = run.status === 'running';
   const outcomeMessage = describeOutcome(
-    run.reason as 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | null,
+    run.reason as 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | 'tool_errors' | null,
     run.total_cost,
     run.max_cost_usd,
   );
@@ -131,7 +133,7 @@ export default function RunDetail() {
       {run.steps.length > 0 && (
         <div className="run-detail-steps">
           {run.steps.map((step) => (
-            <StepCard key={step.step_number} step={step} stepNumber={step.step_number} />
+            <StepCard key={step.step_number} step={step} stepNumber={step.step_number} tools={tools} />
           ))}
           <div ref={stepsEndRef} />
         </div>
