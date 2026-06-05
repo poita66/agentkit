@@ -1,7 +1,7 @@
 import asyncio
 import json
 import unittest.mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
