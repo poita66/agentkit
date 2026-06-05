@@ -37,8 +37,26 @@ class ToolRuntime:
         return result
 
     async def _invoke_tool(self, tool: Tool, arguments: dict) -> dict:
-        """Invoke a tool. Default implementation returns a success response."""
+        """Invoke a tool. Default stub returns success, unless arguments contain err_* keywords."""
         await asyncio.sleep(0.5)
+        for value in arguments.values():
+            if isinstance(value, str):
+                if "err_nonrecover" in value:
+                    return {
+                        "ok": False,
+                        "data": None,
+                        "error": {
+                            "code": "INVALID_ARGUMENT",
+                            "message": "Non-recoverable tool error",
+                            "recoverable": False,
+                        },
+                    }
+                if "err_recover" in value:
+                    return {
+                        "ok": False,
+                        "data": None,
+                        "error": {"code": "BAD_REQUEST", "message": "Bad request", "recoverable": True},
+                    }
         return {"ok": True, "data": {"result": f"Executed {tool.name} with {arguments}"}, "error": None}
 
     async def _retry(self, tool_name: str, arguments: dict, original_error: dict) -> dict:
@@ -62,6 +80,16 @@ class ToolRuntime:
                 return result
             last_error = result.get("error", last_error)
 
+        if last_error.get("code") == "BAD_REQUEST":
+            return {
+                "ok": False,
+                "data": None,
+                "error": {
+                    "code": "BAD_REQUEST",
+                    "message": last_error.get("message", "unknown"),
+                    "recoverable": True,
+                },
+            }
         return {
             "ok": False,
             "data": None,

@@ -1,7 +1,5 @@
 {
   "responses": [
-    {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test"}, "cost": 0.01},
-    {"type": "tool_call", "tool_name": "search_web", "arguments": {"query": "test"}, "cost": 0.01},
-    {"type": "final_answer", "answer": "Used alternative tool after error.", "cost": 0.01}
+    {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_nonrecover"}, "cost": 0.01}
   ]
 }

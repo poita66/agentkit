@@ -10,7 +10,6 @@ from backend.src.db.session import get_run_by_id, get_session, get_steps_for_run
 from backend.src.services.agent_loop import run_agent_loop
 from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import create_default_registry
-from backend.src.services.tool_runtime import ToolRuntime
 
 
 class _MockTimeout:
@@ -297,19 +296,16 @@ async def test_full_run_error():
 
 @pytest.mark.asyncio
 async def test_full_run_tool_error_nonrecoverable():
-    """Test that a non-recoverable tool error is surfaced to the LLM,
-    which can then switch to a final answer and complete successfully.
+    """Test that a non-recoverable tool error terminates the run immediately.
 
-    Validates US4 scenario 2: non-recoverable error surfacing to agent.
+    Validates US4 scenario 2: non-recoverable error terminates the run.
     """
     import os
     import tempfile
 
-    # Scenario: LLM calls a tool, gets non-recoverable error, then gives final answer
     scenario = {
         "responses": [
-            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test"}, "cost": 0.01},
-            {"type": "final_answer", "answer": "Handled the error gracefully.", "cost": 0.005},
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_nonrecover"}, "cost": 0.01},
         ]
     }
 
@@ -320,105 +316,14 @@ async def test_full_run_tool_error_nonrecoverable():
     try:
         registry = create_default_registry()
         llm = MockLLM(scenario_path)
-
-        call_count = 0
-
-        def mock_invoke(self, tool, args):
-            nonlocal call_count
-            call_count += 1
-            return {
-                "ok": False,
-                "data": None,
-                "error": {
-                    "code": "INVALID_ARGUMENT",
-                    "message": "Bad argument provided",
-                    "recoverable": False,
-                },
-            }
-
-        with patch.object(ToolRuntime, "_invoke_tool", mock_invoke):
-            async with get_session() as session:
-                from backend.src.db.session import create_run
-
-                run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
-                run_id = run.id
-
-            await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
-
-        await asyncio.sleep(0.1)
 
         async with get_session() as session:
-            run = await get_run_by_id(session, run_id)
-            assert run is not None
-            assert run.status == "succeeded"
-            assert run.reason == "succeeded"
+            from backend.src.db.session import create_run
 
-            steps = await get_steps_for_run(session, run_id)
-            assert len(steps) == 2
-            # Step 1: tool call with non-recoverable error
-            assert steps[0].tool_name == "search_docs"
-            result0 = json.loads(steps[0].result_json)
-            assert result0["ok"] is False
-            assert result0["error"]["code"] == "INVALID_ARGUMENT"
-            assert result0["error"]["recoverable"] is False
-            # Step 2: final answer after LLM saw the error
-            assert steps[1].tool_name is None
-            result1 = json.loads(steps[1].result_json)
-            assert result1["answer"] == "Handled the error gracefully."
+            run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+            run_id = run.id
 
-            assert call_count == 1  # non-recoverable: no retries
-    finally:
-        os.unlink(scenario_path)
-
-
-@pytest.mark.asyncio
-async def test_full_run_tool_error_exhausted():
-    """Test that when a tool always returns a recoverable error,
-    retries are exhausted and the run terminates with error reason.
-
-    Validates US4 scenario 3: retry exhaustion terminates the run (FIX-001).
-    """
-    import os
-    import tempfile
-
-    # Scenario: LLM calls a tool that always fails with recoverable error
-    scenario = {
-        "responses": [
-            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test"}, "cost": 0.01},
-        ]
-    }
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(scenario, f)
-        scenario_path = f.name
-
-    try:
-        registry = create_default_registry()
-        llm = MockLLM(scenario_path)
-
-        call_count = 0
-
-        def mock_invoke(self, tool, args):
-            nonlocal call_count
-            call_count += 1
-            return {
-                "ok": False,
-                "data": None,
-                "error": {
-                    "code": "NETWORK_TIMEOUT",
-                    "message": "Connection timed out",
-                    "recoverable": True,
-                },
-            }
-
-        with patch.object(ToolRuntime, "_invoke_tool", mock_invoke):
-            async with get_session() as session:
-                from backend.src.db.session import create_run
-
-                run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
-                run_id = run.id
-
-            await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
+        await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
 
         await asyncio.sleep(0.1)
 
@@ -433,10 +338,58 @@ async def test_full_run_tool_error_exhausted():
             assert steps[0].tool_name == "search_docs"
             result0 = json.loads(steps[0].result_json)
             assert result0["ok"] is False
-            assert result0["error"]["code"] == "RETRIES_EXHAUSTED"
+            assert result0["error"]["code"] == "INVALID_ARGUMENT"
             assert result0["error"]["recoverable"] is False
+    finally:
+        os.unlink(scenario_path)
 
-            # 1 initial call + 3 retries = 4 total invocations
-            assert call_count == 4
+
+@pytest.mark.asyncio
+async def test_full_run_tool_error_exhausted():
+    """Test that when a tool returns a recoverable error (BAD_REQUEST),
+    retries are exhausted but the error stays recoverable and the run continues.
+
+    Validates US4 scenario 3: BAD_REQUEST remains recoverable after retries.
+    """
+    import os
+    import tempfile
+
+    scenario = {
+        "responses": [
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_recover"}, "cost": 0.01},
+        ]
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(scenario, f)
+        scenario_path = f.name
+
+    try:
+        registry = create_default_registry()
+        llm = MockLLM(scenario_path)
+
+        async with get_session() as session:
+            from backend.src.db.session import create_run
+
+            run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+            run_id = run.id
+
+        await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
+
+        await asyncio.sleep(0.1)
+
+        async with get_session() as session:
+            run = await get_run_by_id(session, run_id)
+            assert run is not None
+            assert run.status == "succeeded"
+            assert run.reason == "succeeded"
+
+            steps = await get_steps_for_run(session, run_id)
+            assert len(steps) == 2
+            assert steps[0].tool_name == "search_docs"
+            result0 = json.loads(steps[0].result_json)
+            assert result0["ok"] is False
+            assert result0["error"]["code"] == "BAD_REQUEST"
+            assert result0["error"]["recoverable"] is True
     finally:
         os.unlink(scenario_path)

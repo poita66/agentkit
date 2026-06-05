@@ -3,7 +3,7 @@ import json
 import logging
 
 from backend.src.db.session import create_step, get_run_by_id, get_session, update_run_cost, update_run_terminal
-from backend.src.services.guards import check_cost_cap, check_step_cap, check_stuck, hash_args
+from backend.src.services.guards import check_cost_cap, check_error_storm, check_step_cap, check_stuck, hash_args
 from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import ToolRegistry
 from backend.src.services.tool_runtime import ToolRuntime
@@ -31,6 +31,7 @@ async def run_agent_loop(
     runtime = ToolRuntime(registry)
     steps: list[dict] = []
     recent_for_stuck: list[tuple[str, str]] = []
+    recent_errors: list[bool] = []
     total_cost = 0.0
     step_number = 0
 
@@ -97,11 +98,29 @@ async def run_agent_loop(
 
                 total_cost += cost
 
-                # If retries exhausted, terminate the run immediately
                 error_info = result.get("error") or {}
-                if error_info.get("code") == "RETRIES_EXHAUSTED":
-                    await _finalize_run(run_id, "error")
-                    return
+
+                # If tool returned an error, check if recoverable
+                had_error = not result.get("ok", True)
+                if had_error:
+                    if not error_info.get("recoverable", False):
+                        # Non-recoverable error (including RETRIES_EXHAUSTED) — terminate
+                        logger.error(
+                            "Non-recoverable error in run %s step %d: %s",
+                            run_id,
+                            step_number,
+                            error_info.get("message"),
+                        )
+                        await _finalize_run(run_id, "error")
+                        return
+
+                    recent_errors.append(True)
+                    terminated, reason = check_error_storm(recent_errors)
+                    if terminated:
+                        await _finalize_run(run_id, reason)
+                        return
+                else:
+                    recent_errors.append(False)
 
                 steps.append(
                     {
@@ -111,15 +130,6 @@ async def run_agent_loop(
                         "result": result,
                     }
                 )
-
-                # If tool returned non-recoverable error, surface to LLM for next iteration
-                if not result.get("ok", True) and not error_info.get("recoverable", False):
-                    logger.warning(
-                        "Non-recoverable error in run %s step %d: %s",
-                        run_id,
-                        step_number,
-                        error_info.get("message"),
-                    )
 
     except TimeoutError:
         await _finalize_run(run_id, "timeout")

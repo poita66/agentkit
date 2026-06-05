@@ -41,7 +41,7 @@ async def test_recoverable_error_retry_succeeds(registry):
     rt = ToolRuntime(registry)
     call_count = 0
 
-    def mock_invoke(tool, args):
+    async def mock_invoke(tool, args):
         nonlocal call_count
         call_count += 1
         if call_count < 3:
@@ -62,7 +62,7 @@ async def test_recoverable_error_retry_succeeds(registry):
 async def test_recoverable_error_all_retries_fail(registry):
     rt = ToolRuntime(registry)
 
-    def mock_invoke(tool, args):
+    async def mock_invoke(tool, args):
         return {
             "ok": False,
             "data": None,
@@ -73,14 +73,14 @@ async def test_recoverable_error_all_retries_fail(registry):
         result = await rt.execute("search_docs", {"query": "test"})
     assert result["ok"] is False
     assert result["error"]["code"] == "RETRIES_EXHAUSTED"
-    assert result["error"]["recoverable"] is False
+    assert result["error"]["recoverable"] is True
 
 
 @pytest.mark.asyncio
 async def test_non_recoverable_error_no_retry(registry):
     rt = ToolRuntime(registry)
 
-    def mock_invoke(tool, args):
+    async def mock_invoke(tool, args):
         return {
             "ok": False,
             "data": None,

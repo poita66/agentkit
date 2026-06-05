@@ -41,3 +41,22 @@ def hash_args(args: dict | None) -> str:
     if args is None:
         return ""
     return hashlib.sha256(json.dumps(args, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def check_error_storm(recent_errors: list[bool], threshold: int = 3) -> tuple[bool, str | None]:
+    """Return (should_terminate, reason) if consecutive tool errors exceed threshold.
+
+    recent_errors is a list of booleans (True = error) in chronological order.
+    """
+    if len(recent_errors) < threshold:
+        return False, None
+
+    consecutive = 0
+    for i in range(len(recent_errors) - 1, -1, -1):
+        if recent_errors[i]:
+            consecutive += 1
+        else:
+            break
+    if consecutive >= threshold:
+        return True, "tool_errors"
+    return False, None
