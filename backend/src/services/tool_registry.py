@@ -7,6 +7,9 @@ class Tool:
     name: str
     description: str
     parameters: dict
+    parallel_safe: bool
+    idempotent: bool
+
 
 
 class ToolRegistry:
@@ -47,6 +50,8 @@ def create_default_registry() -> ToolRegistry:
             name="search_docs",
             description="Search documentation and knowledge base for relevant information",
             parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -54,6 +59,8 @@ def create_default_registry() -> ToolRegistry:
             name="search_web",
             description="Search the web for current information and news",
             parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -61,6 +68,8 @@ def create_default_registry() -> ToolRegistry:
             name="read_file",
             description="Read the contents of a file from the filesystem",
             parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -72,6 +81,8 @@ def create_default_registry() -> ToolRegistry:
                 "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
                 "required": ["path", "content"],
             },
+            parallel_safe=False,
+            idempotent=False
         )
     )
     registry.register(
@@ -79,6 +90,8 @@ def create_default_registry() -> ToolRegistry:
             name="calculate",
             description="Perform mathematical calculations and computations",
             parameters={"type": "object", "properties": {"expression": {"type": "string"}}, "required": ["expression"]},
+            parallel_safe=True,
+            idempotent=True
         )
     )
     registry.register(
@@ -86,6 +99,8 @@ def create_default_registry() -> ToolRegistry:
             name="summarize",
             description="Summarize text content into key points",
             parameters={"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -97,6 +112,8 @@ def create_default_registry() -> ToolRegistry:
                 "properties": {"text": {"type": "string"}, "target_language": {"type": "string"}},
                 "required": ["text", "target_language"],
             },
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -104,6 +121,8 @@ def create_default_registry() -> ToolRegistry:
             name="query_database",
             description="Query a database for structured data",
             parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     registry.register(
@@ -115,6 +134,8 @@ def create_default_registry() -> ToolRegistry:
                 "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}},
                 "required": ["to", "subject", "body"],
             },
+            parallel_safe=False,
+            idempotent=False
         )
     )
     registry.register(
@@ -122,6 +143,8 @@ def create_default_registry() -> ToolRegistry:
             name="list_files",
             description="List files and directories in a given path",
             parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
+            parallel_safe=True,
+            idempotent=False
         )
     )
     return registry
