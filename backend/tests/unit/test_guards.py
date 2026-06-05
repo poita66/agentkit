@@ -1,4 +1,4 @@
-from backend.src.services.guards import check_step_cap, check_cost_cap
+from backend.src.services.guards import check_cost_cap, check_step_cap
 
 
 def test_step_cap_not_exceeded():
