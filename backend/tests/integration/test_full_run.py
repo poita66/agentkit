@@ -1,6 +1,8 @@
 import asyncio
 import json
 import time
+import unittest.mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -9,7 +11,22 @@ from backend.src.main import app
 from backend.src.db.session import init_db, close_db, get_session, get_run_by_id, get_steps_for_run
 from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import create_default_registry
+from backend.src.services.tool_runtime import ToolRuntime
 from backend.src.services.agent_loop import run_agent_loop
+
+
+class _MockTimeout:
+    """Mock asyncio.timeout that fires after a short delay instead of 60s."""
+
+    def __init__(self, _duration):
+        pass
+
+    async def __aenter__(self):
+        await asyncio.sleep(0.1)
+        raise TimeoutError()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return False  # Don't suppress exceptions
 
 
 @pytest.fixture(autouse=True)
@@ -208,5 +225,224 @@ async def test_full_run_stuck():
             assert run is not None
             assert run.status == "failed"
             assert run.reason == "stuck"
+    finally:
+        os.unlink(scenario_path)
+
+
+@pytest.mark.asyncio
+async def test_full_run_timeout():
+    """Test that wall-clock timeout (FR-008) terminates the run with reason 'timeout'."""
+    import tempfile
+    import os
+
+    # Scenario with enough tool calls that would exceed the mocked timeout
+    scenario = {
+        "responses": [
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test1"}, "cost": 0.01},
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test2"}, "cost": 0.01},
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test3"}, "cost": 0.01},
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test4"}, "cost": 0.01},
+            {"type": "final_answer", "answer": "Should not reach here.", "cost": 0.005},
+        ]
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(scenario, f)
+        scenario_path = f.name
+
+    try:
+        registry = create_default_registry()
+        llm = MockLLM(scenario_path)
+
+        async with get_session() as session:
+            from backend.src.db.session import create_run
+
+            run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+            run_id = run.id
+
+        # Patch asyncio.timeout to fire after 0.1s instead of 60s
+        with unittest.mock.patch("asyncio.timeout", return_value=_MockTimeout(60)):
+            await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
+
+        await asyncio.sleep(0.1)
+
+        async with get_session() as session:
+            run = await get_run_by_id(session, run_id)
+            assert run is not None
+            assert run.status == "failed"
+            assert run.reason == "timeout"
+    finally:
+        os.unlink(scenario_path)
+
+
+@pytest.mark.asyncio
+async def test_full_run_error():
+    """Test that an unhandled exception in the LLM terminates the run with error reason (FR-015)."""
+    # Create a mock LLM that raises ValueError on call()
+    mock_llm = MagicMock()
+    mock_llm.call = MagicMock(side_effect=ValueError("Unexpected LLM error"))
+
+    registry = create_default_registry()
+
+    async with get_session() as session:
+        from backend.src.db.session import create_run
+
+        run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+        run_id = run.id
+
+    await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, mock_llm)
+
+    await asyncio.sleep(0.1)
+
+    async with get_session() as session:
+        run = await get_run_by_id(session, run_id)
+        assert run is not None
+        assert run.status == "failed"
+        assert run.reason == "error"
+
+
+@pytest.mark.asyncio
+async def test_full_run_tool_error_nonrecoverable():
+    """Test that a non-recoverable tool error is surfaced to the LLM,
+    which can then switch to a final answer and complete successfully.
+
+    Validates US4 scenario 2: non-recoverable error surfacing to agent.
+    """
+    import tempfile
+    import os
+
+    # Scenario: LLM calls a tool, gets non-recoverable error, then gives final answer
+    scenario = {
+        "responses": [
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test"}, "cost": 0.01},
+            {"type": "final_answer", "answer": "Handled the error gracefully.", "cost": 0.005},
+        ]
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(scenario, f)
+        scenario_path = f.name
+
+    try:
+        registry = create_default_registry()
+        llm = MockLLM(scenario_path)
+
+        call_count = 0
+
+        def mock_invoke(self, tool, args):
+            nonlocal call_count
+            call_count += 1
+            return {
+                "ok": False,
+                "data": None,
+                "error": {
+                    "code": "INVALID_ARGUMENT",
+                    "message": "Bad argument provided",
+                    "recoverable": False,
+                },
+            }
+
+        with patch.object(ToolRuntime, "_invoke_tool", mock_invoke):
+            async with get_session() as session:
+                from backend.src.db.session import create_run
+
+                run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+                run_id = run.id
+
+            await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
+
+        await asyncio.sleep(0.1)
+
+        async with get_session() as session:
+            run = await get_run_by_id(session, run_id)
+            assert run is not None
+            assert run.status == "succeeded"
+            assert run.reason == "succeeded"
+
+            steps = await get_steps_for_run(session, run_id)
+            assert len(steps) == 2
+            # Step 1: tool call with non-recoverable error
+            assert steps[0].tool_name == "search_docs"
+            result0 = json.loads(steps[0].result_json)
+            assert result0["ok"] is False
+            assert result0["error"]["code"] == "INVALID_ARGUMENT"
+            assert result0["error"]["recoverable"] is False
+            # Step 2: final answer after LLM saw the error
+            assert steps[1].tool_name is None
+            result1 = json.loads(steps[1].result_json)
+            assert result1["answer"] == "Handled the error gracefully."
+
+            assert call_count == 1  # non-recoverable: no retries
+    finally:
+        os.unlink(scenario_path)
+
+
+@pytest.mark.asyncio
+async def test_full_run_tool_error_exhausted():
+    """Test that when a tool always returns a recoverable error,
+    retries are exhausted and the run terminates with error reason.
+
+    Validates US4 scenario 3: retry exhaustion terminates the run (FIX-001).
+    """
+    import tempfile
+    import os
+
+    # Scenario: LLM calls a tool that always fails with recoverable error
+    scenario = {
+        "responses": [
+            {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "test"}, "cost": 0.01},
+        ]
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(scenario, f)
+        scenario_path = f.name
+
+    try:
+        registry = create_default_registry()
+        llm = MockLLM(scenario_path)
+
+        call_count = 0
+
+        def mock_invoke(self, tool, args):
+            nonlocal call_count
+            call_count += 1
+            return {
+                "ok": False,
+                "data": None,
+                "error": {
+                    "code": "NETWORK_TIMEOUT",
+                    "message": "Connection timed out",
+                    "recoverable": True,
+                },
+            }
+
+        with patch.object(ToolRuntime, "_invoke_tool", mock_invoke):
+            async with get_session() as session:
+                from backend.src.db.session import create_run
+
+                run = await create_run(session, "Test goal", max_steps=10, max_cost_usd=1.0)
+                run_id = run.id
+
+            await run_agent_loop(run_id, "Test goal", 10, 1.0, registry, llm)
+
+        await asyncio.sleep(0.1)
+
+        async with get_session() as session:
+            run = await get_run_by_id(session, run_id)
+            assert run is not None
+            assert run.status == "failed"
+            assert run.reason == "error"
+
+            steps = await get_steps_for_run(session, run_id)
+            assert len(steps) == 1
+            assert steps[0].tool_name == "search_docs"
+            result0 = json.loads(steps[0].result_json)
+            assert result0["ok"] is False
+            assert result0["error"]["code"] == "RETRIES_EXHAUSTED"
+            assert result0["error"]["recoverable"] is False
+
+            # 1 initial call + 3 retries = 4 total invocations
+            assert call_count == 4
     finally:
         os.unlink(scenario_path)
