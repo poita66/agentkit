@@ -3,19 +3,19 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
     pass
 
 
-engine = None
-async_session: type[AsyncSession] | None = None
+engine: AsyncEngine | None = None
+async_session: async_sessionmaker[AsyncSession] | None = None
 
 
-def get_engine():
+def get_engine() -> AsyncEngine:
     global engine
     if engine is None:
         engine = create_async_engine(
@@ -32,10 +32,10 @@ def get_engine():
     return engine
 
 
-def get_session_factory():
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
     global async_session
     if async_session is None:
-        async_session = sessionmaker(get_engine(), class_=AsyncSession, expire_on_commit=False)
+        async_session = async_sessionmaker(get_engine(), expire_on_commit=False)
     return async_session
 
 

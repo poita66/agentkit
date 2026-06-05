@@ -20,6 +20,8 @@ known-first-party = ["backend.src"]
 
 [tool.mypy]
 python_version = "3.12"
+mypy_path = ".."
+explicit_package_bases = true
 warn_return_any = true
 warn_unused_configs = true
 disable_error_code = ["override", "import-untyped", "no-untyped-def", "no-untyped-call", "type-arg", "misc", "assignment", "type-var", "no-any-return"]

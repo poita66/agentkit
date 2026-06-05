@@ -41,11 +41,13 @@ async def run_agent_loop(
                 # Check guards before next step
                 terminated, reason = check_step_cap(len(steps), max_steps)
                 if terminated:
+                    assert reason is not None
                     await _finalize_run(run_id, reason)
                     return
 
                 terminated, reason = check_cost_cap(total_cost, max_cost_usd)
                 if terminated:
+                    assert reason is not None
                     await _finalize_run(run_id, reason)
                     return
 
@@ -76,6 +78,7 @@ async def run_agent_loop(
 
                 # Tool call
                 tool_name = response.get("tool_name")
+                assert tool_name is not None
                 arguments = response.get("arguments", {})
                 cost = response.get("cost", 0.0)
 
@@ -84,6 +87,7 @@ async def run_agent_loop(
                 recent_for_stuck.append((tool_name, args_hash))
                 terminated, reason = check_stuck(recent_for_stuck)
                 if terminated:
+                    assert reason is not None
                     await _finalize_run(run_id, reason)
                     return
 
@@ -117,6 +121,7 @@ async def run_agent_loop(
                     recent_errors.append(True)
                     terminated, reason = check_error_storm(recent_errors)
                     if terminated:
+                        assert reason is not None
                         await _finalize_run(run_id, reason)
                         return
                 else:
