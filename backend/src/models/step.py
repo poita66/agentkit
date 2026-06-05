@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.src.db.session import Base
@@ -9,7 +9,10 @@ from backend.src.db.session import Base
 
 class Step(Base):
     __tablename__ = "steps"
-    __table_args__ = (UniqueConstraint("run_id", "step_number"),)
+    __table_args__ = (
+        UniqueConstraint("run_id", "step_number"),
+        Index("idx_steps_run_id", "run_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     run_id: Mapped[str] = mapped_column(String, ForeignKey("runs.id"), nullable=False)
