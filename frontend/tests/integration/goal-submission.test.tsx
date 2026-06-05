@@ -7,11 +7,13 @@ import App from '@/App';
 const mockCreateRun = vi.hoisted(() => vi.fn());
 const mockGetRun = vi.hoisted(() => vi.fn());
 const mockGetRuns = vi.hoisted(() => vi.fn());
+const mockGetScenarios = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 
 vi.mock('@/api/client', () => ({
   createRun: mockCreateRun,
   getRun: mockGetRun,
   getRuns: mockGetRuns,
+  getScenarios: mockGetScenarios,
 }));
 
 function renderApp(initialEntries?: string[]) {
@@ -91,6 +93,7 @@ describe('Goal submission flow', () => {
         goal: 'Test goal',
         max_steps: null,
         max_cost_usd: null,
+        scenario: null,
       });
     });
 
