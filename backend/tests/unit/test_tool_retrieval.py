@@ -1,4 +1,4 @@
-from backend.src.services.tool_registry import ToolRegistry, Tool
+from backend.src.services.tool_registry import Tool, ToolRegistry
 
 
 def test_retrieve_returns_top_k():
