@@ -1,4 +1,5 @@
 {
+  "triggers": ["cost limit", "max cost", "budget", "cost cap", "over budget"],
   "caps": {"max_steps": 20, "max_cost_usd": 0.5},
   "responses": [
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "Python best practices"}, "cost": 0.3},

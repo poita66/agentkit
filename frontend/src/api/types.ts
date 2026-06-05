@@ -41,7 +41,6 @@ export interface RunCreateRequest {
   goal: string;
   max_steps?: number | null;
   max_cost_usd?: number | null;
-  scenario?: string | null;
 }
 
 export interface RunCreateResponse {

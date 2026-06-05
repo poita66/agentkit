@@ -1,4 +1,5 @@
 {
+  "triggers": ["exhaust retries", "retry exhausted", "exhausted"],
   "responses": [
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_recover auth_failure"}, "cost": 0.01},
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_recover retry_attempt"}, "cost": 0.01},

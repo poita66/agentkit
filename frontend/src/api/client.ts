@@ -29,7 +29,6 @@ export async function createRun(request: {
   goal: string;
   max_steps?: number | null;
   max_cost_usd?: number | null;
-  scenario?: string | null;
 }): Promise<{ run_id: string }> {
   return apiFetch('/runs', {
     method: 'POST',

@@ -8,7 +8,7 @@ interface UseRunMutationResult {
   runId: string | null;
   createRunFn: (
     goal: string,
-    options?: { max_steps?: number; max_cost_usd?: number; scenario?: string | null },
+    options?: { max_steps?: number; max_cost_usd?: number },
   ) => Promise<void>;
   reset: () => void;
 }
@@ -20,7 +20,7 @@ export function useRunMutation(): UseRunMutationResult {
   const [runId, setRunId] = useState<string | null>(null);
 
   const createRunFn = useCallback(
-    async (goal: string, options?: { max_steps?: number; max_cost_usd?: number; scenario?: string | null }) => {
+    async (goal: string, options?: { max_steps?: number; max_cost_usd?: number }) => {
       const trimmedGoal = goal.trim();
       if (!trimmedGoal) {
         setError('Goal cannot be empty.');
@@ -41,7 +41,6 @@ export function useRunMutation(): UseRunMutationResult {
           goal: trimmedGoal,
           max_steps: options?.max_steps ?? null,
           max_cost_usd: options?.max_cost_usd ?? null,
-          scenario: options?.scenario ?? null,
         });
         setRunId(result.run_id);
         setSuccess(true);

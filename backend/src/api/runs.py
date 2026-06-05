@@ -22,11 +22,11 @@ _SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "scen
 # Friendly descriptions for each scenario file
 _SCENARIO_DESCRIPTIONS: dict[str, str] = {
     "success": "Agent completes successfully with a final answer",
-    "step_cap": "Agent hits the maximum step limit",
+    "step_cap": "Agent hits the step limit",
     "cost_cap": "Agent hits the maximum cost budget",
-    "stuck": "Agent gets stuck repeating the same tool call",
-    "tool_error_recoverable": "Agent encounters a recoverable tool error and retries",
-    "tool_error_nonrecoverable": "Agent encounters a non-recoverable tool error",
+    "stuck": "Agent gets stuck in a loop",
+    "tool_error_recoverable": "Agent encounters a recoverable error and retries",
+    "tool_error_nonrecoverable": "Agent encounters a non-recoverable error",
     "tool_error_exhausted": "Agent exhausts all retries on a tool error",
 }
 
@@ -52,8 +52,22 @@ async def list_scenarios():
     scenarios = []
     for f in sorted(_SCENARIOS_DIR.glob("*.json")):
         name = f.stem
+        if name == "default":
+            continue
         scenarios.append(ScenarioInfo(name=name, description=_SCENARIO_DESCRIPTIONS.get(name, f.name)))
     return scenarios
+
+
+def _match_scenario(goal: str) -> str | None:
+    """Match goal text against scenario triggers. Returns scenario file path or None."""
+    goal_lower = goal.lower()
+    for f in sorted(_SCENARIOS_DIR.glob("*.json")):
+        with open(f) as fh:
+            data = json.load(fh)
+        for trigger in data.get("triggers", []):
+            if trigger.lower() in goal_lower:
+                return str(f)
+    return None
 
 
 @router.post("", status_code=202)
@@ -67,8 +81,11 @@ async def create_run_endpoint(req: RunCreate):
     max_steps = req.max_steps or 20
     max_cost_usd = req.max_cost_usd or 0.5
 
-    # Read caps from scenario file to override defaults
-    scenario_path = req.scenario or os.environ.get("AGENT_MOCK_SCENARIO")
+    # Env var override takes precedence
+    scenario_path = os.environ.get("AGENT_MOCK_SCENARIO")
+    # Otherwise match goal against scenario triggers
+    if not scenario_path and os.environ.get("AGENT_MOCK_ENABLED"):
+        scenario_path = _match_scenario(goal) or str(_SCENARIOS_DIR / "default.json")
     if scenario_path:
         if not scenario_path.endswith(".json"):
             scenario_path = f"{_SCENARIOS_DIR}/{scenario_path}.json"
@@ -83,7 +100,7 @@ async def create_run_endpoint(req: RunCreate):
     async with get_session() as session:
         run = await create_run(session, goal, max_steps, max_cost_usd)
 
-    # Spawn agent loop if a mock scenario is specified (via request or env var).
+    # Spawn agent loop if a mock scenario is matched
     if scenario_path:
         from backend.src.services.llm import MockLLM
 

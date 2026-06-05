@@ -1,4 +1,5 @@
 {
+  "triggers": ["non-recoverable error", "fatal error", "nonrecoverable"],
   "responses": [
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_nonrecover"}, "cost": 0.01}
   ]

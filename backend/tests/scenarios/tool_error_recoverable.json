@@ -1,4 +1,5 @@
 {
+  "triggers": ["recoverable error", "error retry", "recover"],
   "responses": [
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "err_recover"}, "cost": 0.01},
     {"type": "tool_call", "tool_name": "search_web", "arguments": {"query": "test"}, "cost": 0.01},

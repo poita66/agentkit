@@ -38,11 +38,9 @@ export default function GoalInput({
         const options: {
           max_steps?: number;
           max_cost_usd?: number;
-          scenario?: string | null;
         } = {};
         if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
         if (maxCost) options.max_cost_usd = parseFloat(maxCost);
-        if (selectedScenario) options.scenario = selectedScenario;
         onSubmit(
           goal.trim(),
           Object.keys(options).length > 0 ? options : undefined,
@@ -70,11 +68,9 @@ export default function GoalInput({
     const options: {
       max_steps?: number;
       max_cost_usd?: number;
-      scenario?: string | null;
     } = {};
     if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
     if (maxCost) options.max_cost_usd = parseFloat(maxCost);
-    if (selectedScenario) options.scenario = selectedScenario;
     await createRunFn(
       goal,
       Object.keys(options).length > 0 ? options : undefined,

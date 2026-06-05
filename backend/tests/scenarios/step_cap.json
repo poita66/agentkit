@@ -1,4 +1,5 @@
 {
+  "triggers": ["step limit", "max step", "too many steps", "step cap"],
   "caps": {"max_steps": 5, "max_cost_usd": 0.5},
   "responses": [
     {"type": "tool_call", "tool_name": "search_docs", "arguments": {"query": "Python best practices"}, "cost": 0.04},
