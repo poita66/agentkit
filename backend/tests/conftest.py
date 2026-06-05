@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.src.db.session import Base, get_engine, get_session_factory, init_db, close_db, engine as _engine_var
+from backend.src.db.session import Base
 
 
 @pytest.fixture(scope="session")
@@ -19,7 +19,6 @@ def anyio_backend():
 @pytest.fixture(scope="function")
 async def db_session():
     """Create an in-memory database session for testing."""
-    from backend.src.db.session import engine, async_session as _async_session
 
     # Use in-memory DB for tests
     test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", connect_args={"check_same_thread": False})
