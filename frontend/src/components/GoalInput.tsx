@@ -1,19 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getScenarios } from '../api/client';
-import { ScenarioInfo } from '../api/types';
-import { useRunMutation } from '../hooks/useRunMutation';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getScenarios } from "../api/client";
+import { ScenarioInfo } from "../api/types";
+import { useRunMutation } from "../hooks/useRunMutation";
 
 interface GoalInputProps {
-  onSubmit?: (goal: string, options?: { max_steps?: number; max_cost_usd?: number }) => void;
+  onSubmit?: (
+    goal: string,
+    options?: { max_steps?: number; max_cost_usd?: number },
+  ) => void;
   disabled?: boolean;
 }
 
-export default function GoalInput({ onSubmit, disabled: externalDisabled }: GoalInputProps) {
-  const [goal, setGoal] = useState('');
+export default function GoalInput({
+  onSubmit,
+  disabled: externalDisabled,
+}: GoalInputProps) {
+  const [goal, setGoal] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [maxSteps, setMaxSteps] = useState('');
-  const [maxCost, setMaxCost] = useState('');
+  const [maxSteps, setMaxSteps] = useState("");
+  const [maxCost, setMaxCost] = useState("");
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
   const { loading, error, success, runId, createRunFn } = useRunMutation();
@@ -21,39 +27,68 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    getScenarios().then((data) => setScenarios(data)).catch(() => {});
+    getScenarios()
+      .then((data) => setScenarios(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (success && runId) {
       if (onSubmit) {
-        const options: { max_steps?: number; max_cost_usd?: number; scenario?: string | null } = {};
+        const options: {
+          max_steps?: number;
+          max_cost_usd?: number;
+          scenario?: string | null;
+        } = {};
         if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
         if (maxCost) options.max_cost_usd = parseFloat(maxCost);
         if (selectedScenario) options.scenario = selectedScenario;
-        onSubmit(goal.trim(), Object.keys(options).length > 0 ? options : undefined);
+        onSubmit(
+          goal.trim(),
+          Object.keys(options).length > 0 ? options : undefined,
+        );
       }
       navigate(`/runs/${runId}`);
-      setGoal('');
-      setMaxSteps('');
-      setMaxCost('');
+      setGoal("");
+      setMaxSteps("");
+      setMaxCost("");
       setSelectedScenario(null);
     }
-  }, [success, runId, onSubmit, navigate, goal, maxSteps, maxCost, selectedScenario]);
+  }, [
+    success,
+    runId,
+    onSubmit,
+    navigate,
+    goal,
+    maxSteps,
+    maxCost,
+    selectedScenario,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const options: { max_steps?: number; max_cost_usd?: number; scenario?: string | null } = {};
+    const options: {
+      max_steps?: number;
+      max_cost_usd?: number;
+      scenario?: string | null;
+    } = {};
     if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
     if (maxCost) options.max_cost_usd = parseFloat(maxCost);
     if (selectedScenario) options.scenario = selectedScenario;
-    await createRunFn(goal, Object.keys(options).length > 0 ? options : undefined);
+    await createRunFn(
+      goal,
+      Object.keys(options).length > 0 ? options : undefined,
+    );
   };
 
   const isDisabled = externalDisabled || loading;
 
   return (
-    <form className="goal-input" onSubmit={handleSubmit} aria-label="Submit a goal">
+    <form
+      className="goal-input"
+      onSubmit={handleSubmit}
+      aria-label="Submit a goal"
+    >
       <div className="goal-input-row">
         <input
           ref={inputRef}
@@ -69,9 +104,9 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
           type="submit"
           className="goal-input-submit"
           disabled={isDisabled || !goal.trim()}
-          aria-label={loading ? 'Submitting goal...' : 'Submit goal'}
+          aria-label={loading ? "Submitting goal..." : "Submit goal"}
         >
-          {loading ? 'Submitting...' : 'Submit'}
+          {loading ? "Submitting..." : "Submit"}
         </button>
       </div>
 
@@ -82,7 +117,7 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
           onClick={() => setShowAdvanced(!showAdvanced)}
           aria-expanded={showAdvanced}
         >
-          {showAdvanced ? 'Hide' : 'Advanced'}
+          {showAdvanced ? "Hide" : "Advanced"}
         </button>
 
         {showAdvanced && (
@@ -125,8 +160,10 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
               <button
                 key={s.name}
                 type="button"
-                className={`goal-input-scenario-btn${selectedScenario === s.name ? ' goal-input-scenario-btn--active' : ''}`}
-                onClick={() => setSelectedScenario(selectedScenario === s.name ? null : s.name)}
+                className={`goal-input-scenario-btn${selectedScenario === s.name ? " goal-input-scenario-btn--active" : ""}`}
+                onClick={() => {
+                  scenarioOnClick(s);
+                }}
                 title={s.description}
               >
                 {s.name}
@@ -252,4 +289,10 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
       `}</style>
     </form>
   );
+
+  function scenarioOnClick(s: ScenarioInfo) {
+    const previouslySelected = selectedScenario === s.name;
+    setSelectedScenario(previouslySelected ? null : s.name);
+    setGoal(previouslySelected ? "" : s.description);
+  }
 }
