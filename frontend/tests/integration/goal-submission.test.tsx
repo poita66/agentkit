@@ -106,7 +106,6 @@ describe('Goal submission flow', () => {
         goal: 'Test goal',
         max_steps: null,
         max_cost_usd: null,
-        scenario: null,
       });
     });
 
