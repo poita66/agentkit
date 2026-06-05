@@ -1,18 +1,16 @@
 import asyncio
 import json
-import time
 import unittest.mock
 from unittest.mock import MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.src.main import app
-from backend.src.db.session import init_db, close_db, get_session, get_run_by_id, get_steps_for_run
+from backend.src.db.session import get_run_by_id, get_session, get_steps_for_run
+from backend.src.services.agent_loop import run_agent_loop
 from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import create_default_registry
 from backend.src.services.tool_runtime import ToolRuntime
-from backend.src.services.agent_loop import run_agent_loop
 
 
 class _MockTimeout:
@@ -32,13 +30,12 @@ class _MockTimeout:
 @pytest.fixture(autouse=True)
 async def clean_db():
     """Use in-memory DB for each test."""
-    from backend.src.db.session import engine, async_session as _as
     from sqlalchemy.ext.asyncio import create_async_engine
     from sqlalchemy.orm import sessionmaker
-    from backend.src.db.session import Base
 
     # We need to reset the module-level engine to use in-memory
     import backend.src.db.session as session_module
+    from backend.src.db.session import Base
 
     original_engine = session_module.engine
 
@@ -60,14 +57,11 @@ async def clean_db():
     await test_engine.dispose()
 
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-
 @pytest.mark.asyncio
 async def test_full_run_success():
     """Test a complete successful run with mock LLM."""
-    import tempfile
     import os
+    import tempfile
 
     scenario = {
         "responses": [
@@ -111,8 +105,8 @@ async def test_full_run_success():
 @pytest.mark.asyncio
 async def test_full_run_step_cap():
     """Test that step cap terminates the run."""
-    import tempfile
     import os
+    import tempfile
 
     scenario = {
         "responses": [
@@ -151,8 +145,8 @@ async def test_full_run_step_cap():
 @pytest.mark.asyncio
 async def test_full_run_cost_cap():
     """Test that cost cap terminates the run."""
-    import tempfile
     import os
+    import tempfile
 
     scenario = {
         "responses": [
@@ -191,8 +185,8 @@ async def test_full_run_cost_cap():
 @pytest.mark.asyncio
 async def test_full_run_stuck():
     """Test that stuck detection terminates the run."""
-    import tempfile
     import os
+    import tempfile
 
     scenario = {
         "responses": [
@@ -232,8 +226,8 @@ async def test_full_run_stuck():
 @pytest.mark.asyncio
 async def test_full_run_timeout():
     """Test that wall-clock timeout (FR-008) terminates the run with reason 'timeout'."""
-    import tempfile
     import os
+    import tempfile
 
     # Scenario with enough tool calls that would exceed the mocked timeout
     scenario = {
@@ -308,8 +302,8 @@ async def test_full_run_tool_error_nonrecoverable():
 
     Validates US4 scenario 2: non-recoverable error surfacing to agent.
     """
-    import tempfile
     import os
+    import tempfile
 
     # Scenario: LLM calls a tool, gets non-recoverable error, then gives final answer
     scenario = {
@@ -384,8 +378,8 @@ async def test_full_run_tool_error_exhausted():
 
     Validates US4 scenario 3: retry exhaustion terminates the run (FIX-001).
     """
-    import tempfile
     import os
+    import tempfile
 
     # Scenario: LLM calls a tool that always fails with recoverable error
     scenario = {
