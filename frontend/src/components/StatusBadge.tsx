@@ -18,6 +18,7 @@ const BADGE_STYLES: Record<string, { bg: string; color: string; label: string }>
   stuck: { bg: 'var(--color-warning-bg)', color: 'var(--color-warning)', label: 'Agent stuck' },
   timeout: { bg: 'var(--color-error-bg)', color: 'var(--color-error)', label: 'Timed out' },
   error: { bg: 'var(--color-error-bg)', color: 'var(--color-error)', label: 'Error' },
+  tool_errors: { bg: 'var(--color-warning-bg)', color: 'var(--color-warning)', label: 'Tool errors' },
   running: { bg: 'var(--color-info-bg)', color: 'var(--color-info)', label: 'Running' },
 };
 

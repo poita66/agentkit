@@ -1,4 +1,4 @@
-type TerminationReason = 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error';
+type TerminationReason = 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | 'tool_errors';
 
 export function describeOutcome(
   reason: TerminationReason | null,
@@ -20,6 +20,8 @@ export function describeOutcome(
       return 'The run exceeded the time limit. Try a simpler goal.';
     case 'error':
       return 'An error occurred during the run.';
+    case 'tool_errors':
+      return 'The agent hit too many consecutive tool errors. Try a different goal.';
     default:
       return 'Run ended with an unknown status.';
   }
