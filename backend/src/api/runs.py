@@ -1,4 +1,7 @@
 import json
+import os
+
+import asyncio
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
@@ -7,13 +10,11 @@ from backend.src.api.schemas import RunCreate, RunResponse
 from backend.src.db.session import create_run, get_run_by_id, get_session, get_steps_for_run
 from backend.src.models.run import Run
 from backend.src.services.agent_loop import run_agent_loop
-from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import create_default_registry
 
 router = APIRouter()
 
 registry = create_default_registry()
-SCENARIOS_DIR = "tests/scenarios"
 
 
 @router.post("", status_code=202)
@@ -30,12 +31,15 @@ async def create_run_endpoint(req: RunCreate):
     async with get_session() as session:
         run = await create_run(session, goal, max_steps, max_cost_usd)
 
-    # Load scenario based on goal keywords for testing
-    scenario_file = _select_scenario(goal, max_steps, max_cost_usd)
-    llm = MockLLM(SCENARIOS_DIR + "/" + scenario_file)
-    import asyncio
+    # Optionally spawn agent loop if a mock scenario path is configured via environment variable.
+    # When AGENT_MOCK_SCENARIO is not set, the endpoint creates the run and returns 202
+    # without spawning any background agent task.
+    scenario_path = os.environ.get("AGENT_MOCK_SCENARIO")
+    if scenario_path:
+        from backend.src.services.llm import MockLLM
 
-    asyncio.create_task(run_agent_loop(run.id, goal, max_steps, max_cost_usd, registry, llm))
+        llm = MockLLM(scenario_path)
+        asyncio.create_task(run_agent_loop(run.id, goal, max_steps, max_cost_usd, registry, llm))
 
     return RunResponse(run_id=run.id)
 
@@ -105,12 +109,3 @@ async def list_runs(limit: int = 20, offset: int = 0):
         "limit": limit,
         "offset": offset,
     }
-
-
-def _select_scenario(goal: str, max_steps: int, max_cost_usd: float) -> str:
-    """Select a scenario file based on request parameters for deterministic testing."""
-    if max_steps <= 2:
-        return "step_cap.json"
-    if max_cost_usd <= 0.01:
-        return "cost_cap.json"
-    return "success.json"

@@ -77,7 +77,6 @@ async def run_agent_loop(
                 tool_name = response.get("tool_name")
                 arguments = response.get("arguments", {})
                 cost = response.get("cost", 0.0)
-                total_cost += cost
 
                 # Check stuck detection
                 args_hash = hash_args(arguments)
@@ -96,6 +95,14 @@ async def run_agent_loop(
                     await create_step(session, run_id, step_number, tool_name, json.dumps(arguments), result_json, cost)
                     await update_run_cost(session, run_id, cost)
 
+                total_cost += cost
+
+                # If retries exhausted, terminate the run immediately
+                error_info = result.get("error") or {}
+                if error_info.get("code") == "RETRIES_EXHAUSTED":
+                    await _finalize_run(run_id, "error")
+                    return
+
                 steps.append(
                     {
                         "step_number": step_number,
@@ -106,12 +113,12 @@ async def run_agent_loop(
                 )
 
                 # If tool returned non-recoverable error, surface to LLM for next iteration
-                if not result.get("ok", True) and not result.get("error", {}).get("recoverable", False):
+                if not result.get("ok", True) and not error_info.get("recoverable", False):
                     logger.warning(
                         "Non-recoverable error in run %s step %d: %s",
                         run_id,
                         step_number,
-                        result.get("error", {}).get("message"),
+                        error_info.get("message"),
                     )
 
     except TimeoutError:
