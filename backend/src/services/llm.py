@@ -26,7 +26,7 @@ class MockLLM:
         - {"type": "tool_call", "tool_name": ..., "arguments": ..., "cost": ...}
         - {"type": "final_answer", "answer": ..., "cost": ...}
         """
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await asyncio.sleep(random.uniform(0.1, 1.0))
         if self._index >= len(self._responses):
             return {"type": "final_answer", "answer": "No more scenario steps.", "cost": 0.0}
 
