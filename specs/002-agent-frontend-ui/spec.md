@@ -94,17 +94,18 @@ The UI gracefully handles situations where no runs exist yet, when the system is
 
 ### Edge Cases
 
-- What happens when the user submits an empty or whitespace-only goal?
-- What happens when the user navigates away from a run mid-execution and returns?
-- What happens when multiple runs are in progress simultaneously?
-- What happens when the user loses network connectivity during a run?
-- What happens when a run has an unusually large number of steps?
+- **Empty goal**: Submit button is disabled until non-whitespace content is entered
+- **Navigating away mid-run**: Run continues on backend; user can return to see current state
+- **Multiple concurrent runs**: Each run has independent UI state; user can view any run
+- **Network loss during run**: Show a reconnection banner with manual retry button
+- **Unusually large step count**: All steps loaded at once; no virtualization or pagination
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a single text input for the user to enter a goal in plain language
+- **FR-001a**: The submit button MUST be disabled when the goal input is empty or contains only whitespace
 - **FR-002**: System MUST hide technical parameters (step limit, cost limit) from the default view, either omitting them entirely or placing them behind an advanced toggle
 - **FR-003**: System MUST send sensible default values for technical parameters when creating a run
 - **FR-004**: System MUST display each agent step as a friendly, human-readable description of the action being taken
@@ -122,11 +123,13 @@ The UI gracefully handles situations where no runs exist yet, when the system is
 - **FR-016**: System MUST use semantic HTML elements for accessibility
 - **FR-017**: System MUST be keyboard navigable with preserved focus indicators
 - **FR-018**: System MUST maintain adequate color contrast for readability
+- **FR-019**: System MUST support multiple concurrent runs with independent UI state and polling
+- **FR-020**: System MUST show a reconnection banner with a manual retry button when network connectivity is lost during polling
 
 ### Key Entities
 
 - **Run**: A single agent execution with a goal, status, termination reason, steps, and timing. The frontend displays runs in list and detail views.
-- **Step**: A single iteration within a run, containing tool information, arguments, results, and cost. Steps are displayed with friendly summaries and expandable raw details.
+- **Step**: A single iteration within a run, containing tool information, arguments, results, and cost. The frontend derives friendly summaries from tool name and arguments; raw details are expandable.
 - **Run List**: A collection of recent runs with summary information used for browsing and navigation.
 
 ## Success Criteria *(mandatory)*
@@ -143,6 +146,16 @@ The UI gracefully handles situations where no runs exist yet, when the system is
 - **SC-008**: Color contrast meets WCAG AA standards for all text and UI elements
 - **SC-009**: Loading states resolve or show an error within 10 seconds — no infinite spinners
 - **SC-010**: Users can find and reopen a past run within 3 clicks from the main screen
+
+## Clarifications
+
+### Session 2026-06-05
+
+- Q: How should the frontend generate friendly step descriptions? → A: Frontend derives friendly descriptions from tool name/args (via formatStep.ts)
+- Q: What happens when the user submits an empty or whitespace-only goal? → A: Submit button is disabled until the goal field has non-whitespace content
+- Q: How should the UI handle multiple concurrent runs? → A: Allow multiple concurrent runs, each with independent UI state
+- Q: What happens when the user loses network connectivity during a run? → A: Show a reconnection banner with a manual retry button
+- Q: How should the UI handle runs with an unusually large number of steps? → A: Load all steps; rely on browser rendering performance
 
 ## Assumptions
 
