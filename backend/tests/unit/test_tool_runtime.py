@@ -9,8 +9,10 @@ from backend.src.services.tool_runtime import ToolRuntime
 @pytest.fixture
 def registry():
     reg = ToolRegistry()
-    reg.register(Tool(name="search_docs", description="Search docs", parameters={}))
-    reg.register(Tool(name="calculate", description="Calculate", parameters={}))
+    reg.register(
+        Tool(name="search_docs", description="Search docs", parameters={}, parallel_safe=True, idempotent=False)
+    )
+    reg.register(Tool(name="calculate", description="Calculate", parameters={}, parallel_safe=True, idempotent=True))
     return reg
 
 

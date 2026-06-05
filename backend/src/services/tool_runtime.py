@@ -96,6 +96,6 @@ class ToolRuntime:
             "error": {
                 "code": "RETRIES_EXHAUSTED",
                 "message": f"All {self._max_retries} retries failed: {last_error.get('message', 'unknown')}",
-                "recoverable": False,
+                "recoverable": last_error.get("recoverable", False),
             },
         }

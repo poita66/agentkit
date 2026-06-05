@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import tempfile
+import time
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -15,7 +16,7 @@ from backend.src.services.tool_registry import create_default_registry
 
 @pytest.fixture(autouse=True)
 async def clean_db():
-    """Use in-memory DB for each test (same pattern as test_full_run.py)."""
+    """Use a temp file DB for concurrency tests (in-memory SQLite doesn't share state across connections)."""
     import backend.src.db.session as session_module
 
     original_engine = session_module.engine
@@ -24,7 +25,12 @@ async def clean_db():
     from backend.src.models.run import Run  # noqa: F401
     from backend.src.models.step import Step  # noqa: F401
 
-    test_engine = create_async_engine("sqlite+aiosqlite:///:memory:", connect_args={"check_same_thread": False})
+    fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    test_engine = create_async_engine(
+        f"sqlite+aiosqlite:///{db_path}",
+        connect_args={"check_same_thread": False},
+    )
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
@@ -36,6 +42,10 @@ async def clean_db():
     session_module.engine = original_engine
     session_module.async_session = None
     await test_engine.dispose()
+    try:
+        os.unlink(db_path)
+    except OSError:
+        pass
 
 
 def _make_scenario_file(num_tool_calls: int = 1) -> str:
@@ -114,8 +124,19 @@ async def test_concurrent_runs():
 
         await asyncio.gather(*tasks)
 
-        # Allow a brief moment for any pending writes
-        await asyncio.sleep(0.1)
+        # Poll until all runs reach terminal state (SQLite concurrency may cause delays)
+        deadline = time.monotonic() + 30  # 30s timeout
+        while time.monotonic() < deadline:
+            all_terminal = True
+            async with get_session() as session:
+                for run_id in run_ids:
+                    run = await get_run_by_id(session, run_id)
+                    if run and run.status not in ("succeeded", "failed"):
+                        all_terminal = False
+                        break
+            if all_terminal:
+                break
+            await asyncio.sleep(0.5)
 
         # Verify all 100 runs
         async with get_session() as session:
