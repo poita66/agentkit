@@ -1,7 +1,6 @@
+import asyncio
 import json
 import os
-
-import asyncio
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
