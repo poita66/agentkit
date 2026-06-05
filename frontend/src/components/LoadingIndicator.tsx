@@ -16,7 +16,11 @@ export default function LoadingIndicator({ message }: LoadingIndicatorProps) {
     return (
       <div className="loading-indicator loading-indicator--timeout" role="alert">
         <p>The operation is taking longer than expected.</p>
-        <button className="loading-indicator-retry" onClick={() => window.location.reload()}>
+        <button
+          type="button"
+          className="loading-indicator-retry"
+          onClick={() => window.location.reload()}
+        >
           Retry
         </button>
         <style>{`

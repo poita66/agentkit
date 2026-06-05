@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getRuns } from '../api/client';
 
 interface RunSummary {
@@ -29,22 +29,25 @@ export function useRuns(limit = 20): UseRunsResult {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
 
-  const fetchRuns = useCallback(async (offsetVal = 0, append = false) => {
-    try {
-      const data = await getRuns(limit, offsetVal);
-      if (append) {
-        setRuns(prev => [...prev, ...data.runs]);
-      } else {
-        setRuns(data.runs);
+  const fetchRuns = useCallback(
+    async (offsetVal = 0, append = false) => {
+      try {
+        const data = await getRuns(limit, offsetVal);
+        if (append) {
+          setRuns((prev) => [...prev, ...data.runs]);
+        } else {
+          setRuns(data.runs);
+        }
+        setTotal(data.total);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch runs.');
+      } finally {
+        setLoading(false);
       }
-      setTotal(data.total);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch runs.');
-    } finally {
-      setLoading(false);
-    }
-  }, [limit]);
+    },
+    [limit],
+  );
 
   useEffect(() => {
     setOffset(0);

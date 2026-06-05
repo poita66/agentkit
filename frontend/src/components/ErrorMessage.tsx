@@ -10,7 +10,7 @@ export default function ErrorMessage({ title, message, onRetry }: ErrorMessagePr
       <h2 className="error-message-title">{title}</h2>
       <p className="error-message-text">{message}</p>
       {onRetry && (
-        <button className="error-message-retry" onClick={onRetry}>
+        <button type="button" className="error-message-retry" onClick={onRetry}>
           Retry
         </button>
       )}

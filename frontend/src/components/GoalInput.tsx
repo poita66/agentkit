@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRunMutation } from '../hooks/useRunMutation';
 
@@ -42,7 +42,7 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
   const isDisabled = externalDisabled || loading;
 
   return (
-    <form className="goal-input" onSubmit={handleSubmit} role="form" aria-label="Submit a goal">
+    <form className="goal-input" onSubmit={handleSubmit} aria-label="Submit a goal">
       <div className="goal-input-row">
         <input
           ref={inputRef}
@@ -53,7 +53,6 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
           onChange={(e) => setGoal(e.target.value)}
           disabled={isDisabled}
           aria-label="Goal"
-          autoFocus
         />
         <button
           type="submit"

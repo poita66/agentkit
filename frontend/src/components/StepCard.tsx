@@ -27,13 +27,16 @@ export default function StepCard({ step, stepNumber }: StepCardProps) {
       aria-label={isFinalAnswer ? 'Final answer' : `Step ${stepNumber}`}
     >
       <button
+        type="button"
         className="step-card-header"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
       >
         <span className="step-card-number">Step {stepNumber}</span>
         <span className="step-card-summary">{summary}</span>
-        <span className="step-card-toggle" aria-hidden="true">{expanded ? '▾' : '▸'}</span>
+        <span className="step-card-toggle" aria-hidden="true">
+          {expanded ? '▾' : '▸'}
+        </span>
       </button>
 
       {expanded && (

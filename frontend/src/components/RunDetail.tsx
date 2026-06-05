@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useRun } from '../hooks/useRun';
 import { describeOutcome } from '../utils/formatOutcome';
-import StepCard from './StepCard';
-import StatusBadge from './StatusBadge';
 import ErrorMessage from './ErrorMessage';
+import StatusBadge from './StatusBadge';
+import StepCard from './StepCard';
 
 export default function RunDetail() {
   const { runId } = useParams<{ runId: string }>();
@@ -28,7 +28,9 @@ export default function RunDetail() {
   if (loading) {
     return (
       <div className="run-detail run-detail--loading">
-        <Link to="/" className="run-detail-back">← Back to runs</Link>
+        <Link to="/" className="run-detail-back">
+          ← Back to runs
+        </Link>
         <div className="run-detail-loading" role="status">
           <div className="spinner" aria-hidden="true"></div>
           <p>Loading run...</p>
@@ -65,7 +67,9 @@ export default function RunDetail() {
   if (error) {
     return (
       <div className="run-detail">
-        <Link to="/" className="run-detail-back">← Back to runs</Link>
+        <Link to="/" className="run-detail-back">
+          ← Back to runs
+        </Link>
         <ErrorMessage
           title="Error loading run"
           message={error}
@@ -84,7 +88,9 @@ export default function RunDetail() {
   if (!run) {
     return (
       <div className="run-detail">
-        <Link to="/" className="run-detail-back">← Back to runs</Link>
+        <Link to="/" className="run-detail-back">
+          ← Back to runs
+        </Link>
         <ErrorMessage
           title="Run not found"
           message="This run may have been deleted or the ID is invalid."
@@ -95,11 +101,17 @@ export default function RunDetail() {
   }
 
   const isRunning = run.status === 'running';
-  const outcomeMessage = describeOutcome(run.reason as 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | null, run.total_cost, run.max_cost_usd);
+  const outcomeMessage = describeOutcome(
+    run.reason as 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error' | null,
+    run.total_cost,
+    run.max_cost_usd,
+  );
 
   return (
     <div className="run-detail">
-      <Link to="/" className="run-detail-back">← Back to runs</Link>
+      <Link to="/" className="run-detail-back">
+        ← Back to runs
+      </Link>
 
       <header className="run-detail-header">
         <h1 className="run-detail-goal">{run.goal}</h1>
@@ -128,7 +140,9 @@ export default function RunDetail() {
       {isRunning && (
         <div className="run-detail-polling" role="status" aria-live="polite">
           <div className="spinner-small" aria-hidden="true"></div>
-          <span>Processing... ({run.steps.length} step{run.steps.length !== 1 ? 's' : ''} so far)</span>
+          <span>
+            Processing... ({run.steps.length} step{run.steps.length !== 1 ? 's' : ''} so far)
+          </span>
         </div>
       )}
 

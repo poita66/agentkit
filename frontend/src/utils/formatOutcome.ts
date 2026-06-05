@@ -1,6 +1,10 @@
 type TerminationReason = 'succeeded' | 'step_cap' | 'cost_cap' | 'stuck' | 'timeout' | 'error';
 
-export function describeOutcome(reason: TerminationReason | null, totalCost: number, maxCostUsd: number): string {
+export function describeOutcome(
+  reason: TerminationReason | null,
+  _totalCost: number,
+  maxCostUsd: number,
+): string {
   if (!reason) return 'Run in progress...';
 
   switch (reason) {

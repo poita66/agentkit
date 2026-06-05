@@ -25,7 +25,11 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
-export async function createRun(request: { goal: string; max_steps?: number | null; max_cost_usd?: number | null }): Promise<{ run_id: string }> {
+export async function createRun(request: {
+  goal: string;
+  max_steps?: number | null;
+  max_cost_usd?: number | null;
+}): Promise<{ run_id: string }> {
   return apiFetch('/runs', {
     method: 'POST',
     body: JSON.stringify(request),
@@ -54,7 +58,10 @@ export async function getRun(runId: string): Promise<{
   return apiFetch(`/runs/${runId}`);
 }
 
-export async function getRuns(limit = 20, offset = 0): Promise<{
+export async function getRuns(
+  limit = 20,
+  offset = 0,
+): Promise<{
   runs: Array<{
     run_id: string;
     goal: string;

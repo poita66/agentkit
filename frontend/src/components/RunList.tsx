@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useRuns } from '../hooks/useRuns';
-import StatusBadge from './StatusBadge';
 import { timeAgo } from '../utils/timeAgo';
+import StatusBadge from './StatusBadge';
 
 export default function RunList() {
   const { runs, total, loading, error, loadMore } = useRuns(20);
@@ -79,10 +79,14 @@ export default function RunList() {
   return (
     <section className="run-list" aria-label="Run history">
       <h2 className="run-list-title">Recent Runs</h2>
-      <ul className="run-list-items" role="list">
+      <ul className="run-list-items">
         {runs.map((run) => (
           <li key={run.run_id} className="run-list-item">
-            <Link to={`/runs/${run.run_id}`} className="run-list-link" aria-label={`View run: ${run.goal}`}>
+            <Link
+              to={`/runs/${run.run_id}`}
+              className="run-list-link"
+              aria-label={`View run: ${run.goal}`}
+            >
               <span className="run-list-goal">{truncate(run.goal, 80)}</span>
               <div className="run-list-meta">
                 <StatusBadge reason={run.reason} status={run.status} />
@@ -96,7 +100,7 @@ export default function RunList() {
       </ul>
 
       {runs.length < total && (
-        <button className="run-list-load-more" onClick={() => loadMore()}>
+        <button type="button" className="run-list-load-more" onClick={() => loadMore()}>
           Load more ({total - runs.length} remaining)
         </button>
       )}

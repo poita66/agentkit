@@ -1,7 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import GoalInput from './components/GoalInput';
-import RunList from './components/RunList';
 import RunDetail from './components/RunDetail';
+import RunList from './components/RunList';
 
 function Home() {
   return (
