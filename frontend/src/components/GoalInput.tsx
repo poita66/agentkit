@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getScenarios } from '../api/client';
+import { ScenarioInfo } from '../api/types';
 import { useRunMutation } from '../hooks/useRunMutation';
 
 interface GoalInputProps {
@@ -12,30 +14,39 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [maxSteps, setMaxSteps] = useState('');
   const [maxCost, setMaxCost] = useState('');
+  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
+  const [scenarios, setScenarios] = useState<ScenarioInfo[]>([]);
   const { loading, error, success, runId, createRunFn } = useRunMutation();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    getScenarios().then((data) => setScenarios(data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (success && runId) {
       if (onSubmit) {
-        const options: { max_steps?: number; max_cost_usd?: number } = {};
+        const options: { max_steps?: number; max_cost_usd?: number; scenario?: string | null } = {};
         if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
         if (maxCost) options.max_cost_usd = parseFloat(maxCost);
+        if (selectedScenario) options.scenario = selectedScenario;
         onSubmit(goal.trim(), Object.keys(options).length > 0 ? options : undefined);
       }
       navigate(`/runs/${runId}`);
       setGoal('');
       setMaxSteps('');
       setMaxCost('');
+      setSelectedScenario(null);
     }
-  }, [success, runId, onSubmit, navigate, goal, maxSteps, maxCost]);
+  }, [success, runId, onSubmit, navigate, goal, maxSteps, maxCost, selectedScenario]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const options: { max_steps?: number; max_cost_usd?: number } = {};
+    const options: { max_steps?: number; max_cost_usd?: number; scenario?: string | null } = {};
     if (maxSteps) options.max_steps = parseInt(maxSteps, 10);
     if (maxCost) options.max_cost_usd = parseFloat(maxCost);
+    if (selectedScenario) options.scenario = selectedScenario;
     await createRunFn(goal, Object.keys(options).length > 0 ? options : undefined);
   };
 
@@ -105,6 +116,25 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
           </div>
         )}
       </div>
+
+      {scenarios.length > 0 && (
+        <div className="goal-input-scenarios">
+          <span className="goal-input-scenarios-label">Test scenarios:</span>
+          <div className="goal-input-scenario-buttons">
+            {scenarios.map((s) => (
+              <button
+                key={s.name}
+                type="button"
+                className={`goal-input-scenario-btn${selectedScenario === s.name ? ' goal-input-scenario-btn--active' : ''}`}
+                onClick={() => setSelectedScenario(selectedScenario === s.name ? null : s.name)}
+                title={s.description}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="goal-input-error" role="alert">
@@ -182,6 +212,42 @@ export default function GoalInput({ onSubmit, disabled: externalDisabled }: Goal
           color: var(--color-error);
           border-radius: var(--radius-sm);
           font-size: 0.875rem;
+        }
+        .goal-input-scenarios {
+          margin-top: var(--spacing-md);
+          padding-top: var(--spacing-sm);
+          border-top: 1px solid var(--color-border);
+        }
+        .goal-input-scenarios-label {
+          font-size: 0.75rem;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          display: block;
+          margin-bottom: var(--spacing-xs);
+        }
+        .goal-input-scenario-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--spacing-xs);
+        }
+        .goal-input-scenario-btn {
+          padding: var(--spacing-xs) var(--spacing-sm);
+          background: var(--color-card-bg);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-sm);
+          color: var(--color-text-muted);
+          font-size: 0.8rem;
+          cursor: pointer;
+        }
+        .goal-input-scenario-btn:hover {
+          border-color: var(--color-primary);
+          color: var(--color-text);
+        }
+        .goal-input-scenario-btn--active {
+          background: var(--color-primary-bg);
+          border-color: var(--color-primary);
+          color: var(--color-primary);
         }
       `}</style>
     </form>

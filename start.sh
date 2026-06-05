@@ -7,6 +7,7 @@ FRONTEND_DIR="$SCRIPT_DIR/frontend"
 
 BACKEND_PORT=8000
 export VITE_API_URL="http://localhost:$BACKEND_PORT"
+export AGENT_MOCK_ENABLED="true"
 
 cleanup() {
     echo "Shutting down..."
@@ -19,6 +20,7 @@ trap cleanup EXIT INT TERM
 
 echo "Starting backend on port $BACKEND_PORT..."
 cd "$SCRIPT_DIR"
+source .venv/bin/activate
 uvicorn backend.src.main:app --host 127.0.0.1 --port $BACKEND_PORT &
 BACKEND_PID=$!
 

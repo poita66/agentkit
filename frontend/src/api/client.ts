@@ -29,6 +29,7 @@ export async function createRun(request: {
   goal: string;
   max_steps?: number | null;
   max_cost_usd?: number | null;
+  scenario?: string | null;
 }): Promise<{ run_id: string }> {
   return apiFetch('/runs', {
     method: 'POST',
@@ -76,4 +77,8 @@ export async function getRuns(
   offset: number;
 }> {
   return apiFetch(`/runs?limit=${limit}&offset=${offset}`);
+}
+
+export async function getScenarios(): Promise<Array<{ name: string; description: string }>> {
+  return apiFetch('/runs/scenarios');
 }

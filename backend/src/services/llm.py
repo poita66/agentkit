@@ -1,4 +1,6 @@
+import asyncio
 import json
+import random
 from pathlib import Path
 
 
@@ -15,13 +17,16 @@ class MockLLM:
             data = json.load(f)
         return data.get("responses", data) if isinstance(data, dict) else data
 
-    def call(self, goal: str, past_steps: list[dict], available_tools: list[dict]) -> dict:
+    async def call(self, goal: str, past_steps: list[dict], available_tools: list[dict]) -> dict:
         """Return the next response from the scenario.
+
+        Simulates 1-2s LLM latency.
 
         Returns either:
         - {"type": "tool_call", "tool_name": ..., "arguments": ..., "cost": ...}
         - {"type": "final_answer", "answer": ..., "cost": ...}
         """
+        await asyncio.sleep(random.uniform(1.0, 2.0))
         if self._index >= len(self._responses):
             return {"type": "final_answer", "answer": "No more scenario steps.", "cost": 0.0}
 

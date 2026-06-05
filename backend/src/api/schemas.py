@@ -5,6 +5,12 @@ class RunCreate(BaseModel):
     goal: str = Field(..., min_length=1, max_length=4096, description="The agent's goal in plain language")
     max_steps: int | None = Field(default=None, ge=1, description="Maximum number of steps (default 20)")
     max_cost_usd: float | None = Field(default=None, gt=0, description="Maximum cost budget in USD (default 0.5)")
+    scenario: str | None = Field(default=None, description="Mock scenario name for testing")
+
+
+class ScenarioInfo(BaseModel):
+    name: str
+    description: str
 
 
 class RunResponse(BaseModel):

@@ -26,7 +26,7 @@ class ToolRuntime:
                 "error": {"code": "TOOL_NOT_FOUND", "message": f"Tool '{tool_name}' not found", "recoverable": False},
             }
 
-        result = self._invoke_tool(tool, arguments)
+        result = await self._invoke_tool(tool, arguments)
         if result["ok"]:
             return result
 
@@ -36,8 +36,9 @@ class ToolRuntime:
 
         return result
 
-    def _invoke_tool(self, tool: Tool, arguments: dict) -> dict:
+    async def _invoke_tool(self, tool: Tool, arguments: dict) -> dict:
         """Invoke a tool. Default implementation returns a success response."""
+        await asyncio.sleep(0.5)
         return {"ok": True, "data": {"result": f"Executed {tool.name} with {arguments}"}, "error": None}
 
     async def _retry(self, tool_name: str, arguments: dict, original_error: dict) -> dict:
@@ -56,7 +57,7 @@ class ToolRuntime:
                         "recoverable": False,
                     },
                 }
-            result = self._invoke_tool(tool, arguments)
+            result = await self._invoke_tool(tool, arguments)
             if result["ok"]:
                 return result
             last_error = result.get("error", last_error)

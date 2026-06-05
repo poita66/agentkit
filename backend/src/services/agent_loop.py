@@ -55,7 +55,7 @@ async def run_agent_loop(
                 ]
 
                 # Call LLM
-                response = llm.call(goal, steps, tools_dict)
+                response = await llm.call(goal, steps, tools_dict)
 
                 if response.get("type") == "final_answer":
                     step_number += 1

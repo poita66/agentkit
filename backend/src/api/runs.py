@@ -1,11 +1,12 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 
-from backend.src.api.schemas import RunCreate, RunResponse
+from backend.src.api.schemas import RunCreate, RunResponse, ScenarioInfo
 from backend.src.db.session import create_run, get_run_by_id, get_session, get_steps_for_run
 from backend.src.models.run import Run
 from backend.src.services.agent_loop import run_agent_loop
@@ -14,6 +15,33 @@ from backend.src.services.tool_registry import create_default_registry
 router = APIRouter()
 
 registry = create_default_registry()
+_agent_tasks: list = []  # Keep references to prevent GC
+
+_SCENARIOS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "scenarios"
+
+# Friendly descriptions for each scenario file
+_SCENARIO_DESCRIPTIONS: dict[str, str] = {
+    "success": "Agent completes successfully with a final answer",
+    "step_cap": "Agent hits the maximum step limit",
+    "cost_cap": "Agent hits the maximum cost budget",
+    "stuck": "Agent gets stuck repeating the same tool call",
+    "tool_error_recoverable": "Agent encounters a recoverable tool error and retries",
+    "tool_error_nonrecoverable": "Agent encounters a non-recoverable tool error",
+    "tool_error_exhausted": "Agent exhausts all retries on a tool error",
+}
+
+
+@router.get("/scenarios")
+async def list_scenarios():
+    if not os.environ.get("AGENT_MOCK_ENABLED"):
+        raise HTTPException(status_code=404, detail="Mock scenarios not available")
+    if not _SCENARIOS_DIR.exists():
+        return []
+    scenarios = []
+    for f in sorted(_SCENARIOS_DIR.glob("*.json")):
+        name = f.stem
+        scenarios.append(ScenarioInfo(name=name, description=_SCENARIO_DESCRIPTIONS.get(name, f.name)))
+    return scenarios
 
 
 @router.post("", status_code=202)
@@ -30,15 +58,16 @@ async def create_run_endpoint(req: RunCreate):
     async with get_session() as session:
         run = await create_run(session, goal, max_steps, max_cost_usd)
 
-    # Optionally spawn agent loop if a mock scenario path is configured via environment variable.
-    # When AGENT_MOCK_SCENARIO is not set, the endpoint creates the run and returns 202
-    # without spawning any background agent task.
-    scenario_path = os.environ.get("AGENT_MOCK_SCENARIO")
+    # Spawn agent loop if a mock scenario is specified (via request or env var).
+    scenario_path = req.scenario or os.environ.get("AGENT_MOCK_SCENARIO")
     if scenario_path:
         from backend.src.services.llm import MockLLM
 
+        if not scenario_path.endswith(".json"):
+            scenario_path = f"{_SCENARIOS_DIR}/{scenario_path}.json"
         llm = MockLLM(scenario_path)
-        asyncio.create_task(run_agent_loop(run.id, goal, max_steps, max_cost_usd, registry, llm))
+        task = asyncio.create_task(run_agent_loop(run.id, goal, max_steps, max_cost_usd, registry, llm))
+        _agent_tasks.append(task)
 
     return RunResponse(run_id=run.id)
 
