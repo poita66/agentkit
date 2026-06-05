@@ -12,12 +12,12 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create frontend project structure: src/, src/api/, src/components/, src/hooks/, src/utils/, src/styles/, tests/unit/, tests/integration/
-- [ ] T002 Initialize package.json with React 18, Vite 5, React Router DOM, Vitest, React Testing Library, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, @types/react, @types/react-dom, TypeScript 5.x, eslint, @vitejs/plugin-react
-- [ ] T003 Create vite.config.ts with React plugin and alias configuration
-- [ ] T004 Create tsconfig.json with strict mode, noUncheckedIndexedAccess, and path aliases
-- [ ] T005 Create .env.development with VITE_API_URL=http://localhost:8000
-- [ ] T006 Create index.html with root div and proper meta tags
+- [X] T001 Create frontend project structure: src/, src/api/, src/components/, src/hooks/, src/utils/, src/styles/, tests/unit/, tests/integration/
+- [X] T002 Initialize package.json with React 18, Vite 5, React Router DOM, Vitest, React Testing Library, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, @types/react, @types/react-dom, TypeScript 5.x, eslint, @vitejs/plugin-react
+- [X] T003 Create vite.config.ts with React plugin and alias configuration
+- [X] T004 Create tsconfig.json with strict mode, noUncheckedIndexedAccess, and path aliases
+- [X] T005 Create .env.development with VITE_API_URL=http://localhost:8000
+- [X] T006 Create index.html with root div and proper meta tags
 
 ---
 
@@ -29,34 +29,34 @@
 
 ### API Layer
 
-- [ ] T007 Create API types in frontend/src/api/types.ts with RunDetail, StepDetail, RunSummary, RunListResponse, RunCreateRequest, RunCreateResponse interfaces
-- [ ] T008 Implement API client in frontend/src/api/client.ts with fetch wrapper, VITE_API_URL base URL, and 10s timeout
+- [X] T007 Create API types in frontend/src/api/types.ts with RunDetail, StepDetail, RunSummary, RunListResponse, RunCreateRequest, RunCreateResponse interfaces
+- [X] T008 Implement API client in frontend/src/api/client.ts with fetch wrapper, VITE_API_URL base URL, and 10s timeout
 
 ### Utilities
 
-- [ ] T009 [P] Implement formatOutcome in frontend/src/utils/formatOutcome.ts with describeOutcome(reason, totalCost, maxCostUsd) mapping all six termination reasons to human-readable messages
-- [ ] T010 [P] Implement formatStep in frontend/src/utils/formatStep.ts with describeStep(step) using TOOL_DESCRIPTIONS map for known tools and generic fallback
-- [ ] T011 [P] Implement timeAgo in frontend/src/utils/timeAgo.ts for relative timestamp formatting from ISO 8601 strings
+- [X] T009 [P] Implement formatOutcome in frontend/src/utils/formatOutcome.ts with describeOutcome(reason, totalCost, maxCostUsd) mapping all six termination reasons to human-readable messages
+- [X] T010 [P] Implement formatStep in frontend/src/utils/formatStep.ts with describeStep(step) using TOOL_DESCRIPTIONS map for known tools and generic fallback
+- [X] T011 [P] Implement timeAgo in frontend/src/utils/timeAgo.ts for relative timestamp formatting from ISO 8601 strings
 
 ### Global Styles
 
-- [ ] T012 Create global.css in frontend/src/styles/global.css with CSS custom properties for color palette, spacing, typography, focus rings, and WCAG AA contrast
+- [X] T012 Create global.css in frontend/src/styles/global.css with CSS custom properties for color palette, spacing, typography, focus rings, and WCAG AA contrast
 
 ### Custom Hooks
 
-- [ ] T013 Implement useRunMutation in frontend/src/hooks/useRunMutation.ts with createRun(goal, options) function, loading/error/success state, and input validation
-- [ ] T014 Implement useRun in frontend/src/hooks/useRun.ts with fetch + poll pattern: polls GET /runs/{runId} every 1.5s while status is running, stops on completion, 10s fetch timeout
-- [ ] T015 Implement useRuns in frontend/src/hooks/useRuns.ts with GET /runs fetch, pagination support (limit/offset), and loading/error state
+- [X] T013 Implement useRunMutation in frontend/src/hooks/useRunMutation.ts with createRun(goal, options) function, loading/error/success state, and input validation
+- [X] T014 Implement useRun in frontend/src/hooks/useRun.ts with fetch + poll pattern: polls GET /runs/{runId} every 1.5s while status is running, stops on completion, 10s fetch timeout
+- [X] T015 Implement useRuns in frontend/src/hooks/useRuns.ts with GET /runs fetch, pagination support (limit/offset), and loading/error state
 
 ### Entry Point & Router
 
-- [ ] T016 Create main.tsx entry point with React strict mode and ReactDOM.createRoot
-- [ ] T017 Create App.tsx with React Router DOM: / route for home (GoalInput + RunList), /runs/:runId route for RunDetail
+- [X] T016 Create main.tsx entry point with React strict mode and ReactDOM.createRoot
+- [X] T017 Create App.tsx with React Router DOM: / route for home (GoalInput + RunList), /runs/:runId route for RunDetail
 
 ### Foundational Tests
 
-- [ ] T018 [P] Unit test for formatOutcome in frontend/tests/unit/formatOutcome.test.ts covering all six termination reasons
-- [ ] T019 [P] Unit test for formatStep in frontend/tests/unit/formatStep.test.ts covering known tool descriptions and unknown tool fallback
+- [X] T018 [P] Unit test for formatOutcome in frontend/tests/unit/formatOutcome.test.ts covering all six termination reasons
+- [X] T019 [P] Unit test for formatStep in frontend/tests/unit/formatStep.test.ts covering known tool descriptions and unknown tool fallback
 
 **Checkpoint**: Foundation ready - API layer, utilities, hooks, router, and styles are complete. User story implementation can now begin.
 
@@ -70,13 +70,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T020 [US1] Unit test for useRun polling logic in frontend/tests/unit/useRun.test.ts verifying poll interval, stop on completion, and error handling
+- [X] T020 [US1] Unit test for useRun polling logic in frontend/tests/unit/useRun.test.ts verifying poll interval, stop on completion, and error handling
 
 ### Implementation for User Story 1
 
-- [ ] T021 [P] [US1] Create GoalInput component in frontend/src/components/GoalInput.tsx with text input, submit button, disabled state during submission, and advanced toggle for max_steps/max_cost_usd
-- [ ] T022 [P] [US1] Create StepCard component in frontend/src/components/StepCard.tsx with default friendly summary (using formatStep), expandable raw details (tool name, args JSON, result, cost, timestamp), and distinct styling for final answer steps
-- [ ] T023 [US1] Create RunDetail component in frontend/src/components/RunDetail.tsx with useRun hook for fetch+poll, prominent final answer display, outcome message from formatOutcome, steps rendered as StepCard list, and back navigation
+- [X] T021 [P] [US1] Create GoalInput component in frontend/src/components/GoalInput.tsx with text input, submit button, disabled state during submission, and advanced toggle for max_steps/max_cost_usd
+- [X] T022 [P] [US1] Create StepCard component in frontend/src/components/StepCard.tsx with default friendly summary (using formatStep), expandable raw details (tool name, args JSON, result, cost, timestamp), and distinct styling for final answer steps
+- [X] T023 [US1] Create RunDetail component in frontend/src/components/RunDetail.tsx with useRun hook for fetch+poll, prominent final answer display, outcome message from formatOutcome, steps rendered as StepCard list, and back navigation
 
 **Checkpoint**: User Story 1 should be fully functional - user can submit a goal, see live progress, and view the final answer.
 
@@ -90,8 +90,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] Create StatusBadge component in frontend/src/components/StatusBadge.tsx with color-coded badges: green (succeeded), amber (step_cap, cost_cap, stuck), red (error, timeout), blue (running), and ARIA labels for accessibility
-- [ ] T025 [US2] Integrate outcome display into RunDetail in frontend/src/components/RunDetail.tsx with human-readable message from formatOutcome and StatusBadge with raw reason code as small label
+- [X] T024 [P] [US2] Create StatusBadge component in frontend/src/components/StatusBadge.tsx with color-coded badges: green (succeeded), amber (step_cap, cost_cap, stuck), red (error, timeout), blue (running), and ARIA labels for accessibility
+- [X] T025 [US2] Integrate outcome display into RunDetail in frontend/src/components/RunDetail.tsx with human-readable message from formatOutcome and StatusBadge with raw reason code as small label
 
 **Checkpoint**: User Story 2 should be fully functional - all termination reasons display with distinct visual indicators and human-readable messages.
 
@@ -105,7 +105,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Create RunList component in frontend/src/components/RunList.tsx with useRuns hook, each item showing truncated goal, StatusBadge, and relative timestamp from timeAgo, empty state with guidance, and pagination support
+- [X] T026 [US3] Create RunList component in frontend/src/components/RunList.tsx with useRuns hook, each item showing truncated goal, StatusBadge, and relative timestamp from timeAgo, empty state with guidance, and pagination support
 
 **Checkpoint**: User Story 3 should be fully functional - user can browse past runs and click to view details.
 
@@ -119,8 +119,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Verify RunDetail polling in frontend/src/components/RunDetail.tsx auto-updates steps and status via useRun hook (polling implemented in T014, wired in T023)
-- [ ] T028 [US4] Add auto-scroll behavior to RunDetail in frontend/src/components/RunDetail.tsx to keep latest step visible as new steps arrive
+- [X] T027 [US4] Verify RunDetail polling in frontend/src/components/RunDetail.tsx auto-updates steps and status via useRun hook (polling implemented in T014, wired in T023)
+- [X] T028 [US4] Add auto-scroll behavior to RunDetail in frontend/src/components/RunDetail.tsx to keep latest step visible as new steps arrive
 
 **Checkpoint**: User Story 4 should be fully functional - UI updates within 2s of new steps completing on server.
 
@@ -134,11 +134,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T029 [P] [US5] Create LoadingIndicator component in frontend/src/components/LoadingIndicator.tsx with animated indicator, message prop, and 10s timeout that switches to error state with retry option
-- [ ] T030 [P] [US5] Create ErrorMessage component in frontend/src/components/ErrorMessage.tsx with title, message, and optional retry button
-- [ ] T031 [US5] Add error handling to RunDetail in frontend/src/components/RunDetail.tsx for 404 (run not found) and network errors using ErrorMessage
-- [ ] T032 [US5] Add error handling to RunList in frontend/src/components/RunList.tsx for network errors and empty state with guidance
-- [ ] T033 [US5] Add error handling to GoalInput in frontend/src/components/GoalInput.tsx for 422 validation errors and backend unavailable states
+- [X] T029 [P] [US5] Create LoadingIndicator component in frontend/src/components/LoadingIndicator.tsx with animated indicator, message prop, and 10s timeout that switches to error state with retry option
+- [X] T030 [P] [US5] Create ErrorMessage component in frontend/src/components/ErrorMessage.tsx with title, message, and optional retry button
+- [X] T031 [US5] Add error handling to RunDetail in frontend/src/components/RunDetail.tsx for 404 (run not found) and network errors using ErrorMessage
+- [X] T032 [US5] Add error handling to RunList in frontend/src/components/RunList.tsx for network errors and empty state with guidance
+- [X] T033 [US5] Add error handling to GoalInput in frontend/src/components/GoalInput.tsx for 422 validation errors and backend unavailable states
 
 **Checkpoint**: User Story 5 should be fully functional - all loading, empty, and error states are handled gracefully.
 
@@ -150,18 +150,18 @@
 
 ### Integration Testing
 
-- [ ] T034 Integration test for full goal submission flow in frontend/tests/integration/goal-submission.test.tsx covering submit, progress display, and completion
+- [X] T034 Integration test for full goal submission flow in frontend/tests/integration/goal-submission.test.tsx covering submit, progress display, and completion
 
 ### Accessibility & UX Polish
 
-- [ ] T035 [P] Audit keyboard navigation across all components ensuring Tab order: input -> submit -> run list items -> run detail steps, with visible focus rings
-- [ ] T036 [P] Verify WCAG AA color contrast for all text and UI elements in frontend/src/styles/global.css
-- [ ] T037 Handle edge cases: empty/whitespace-only goal validation in GoalInput, navigation away and back to running run in RunDetail, and large step lists with virtualization or pagination
+- [X] T035 [P] Audit keyboard navigation across all components ensuring Tab order: input -> submit -> run list items -> run detail steps, with visible focus rings
+- [X] T036 [P] Verify WCAG AA color contrast for all text and UI elements in frontend/src/styles/global.css
+- [X] T037 Handle edge cases: empty/whitespace-only goal validation in GoalInput, navigation away and back to running run in RunDetail, and large step lists with virtualization or pagination
 
 ### Build Validation
 
-- [ ] T038 Run npm run typecheck and npm run lint to ensure clean output per Constitution Principle I
-- [ ] T039 Run npm test to verify all unit and integration tests pass
+- [X] T038 Run npm run typecheck and npm run lint to ensure clean output per Constitution Principle I
+- [X] T039 Run npm test to verify all unit and integration tests pass
 
 ---
 
