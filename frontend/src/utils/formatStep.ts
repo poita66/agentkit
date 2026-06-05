@@ -47,8 +47,8 @@ function describeToolCall(toolName: string, args: Record<string, unknown> | null
 
 export function describeStep(step: Step, tools: ToolDefinition[] = []): string {
   if (step.tool_name === null) {
-    const data = step.result?.data as string | undefined;
-    return data ?? 'Final answer';
+    const answer = step.result?.answer as string | undefined;
+    return answer ?? 'Final answer';
   }
 
   return describeToolCall(step.tool_name, step.args, tools);

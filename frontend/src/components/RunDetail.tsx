@@ -17,8 +17,10 @@ export default function RunDetail() {
 
   useEffect(() => {
     if (run && run.steps.length > prevStepCount.current) {
+      const newSteps = run.steps.slice(prevStepCount.current);
+      const hasNewFinalAnswer = newSteps.some((s) => s.tool_name === null);
       prevStepCount.current = run.steps.length;
-      if (stepsEndRef.current && typeof stepsEndRef.current.scrollIntoView === 'function') {
+      if (!hasNewFinalAnswer && stepsEndRef.current && typeof stepsEndRef.current.scrollIntoView === 'function') {
         stepsEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
     }
@@ -109,6 +111,11 @@ export default function RunDetail() {
     run.max_cost_usd,
   );
 
+  // Extract the final answer from the last step where tool_name is null
+  const finalStep = run.steps.find((s) => s.tool_name === null);
+  const finalAnswer = finalStep?.result?.answer as string | undefined;
+  const hasFinalAnswer = !isRunning && run.reason === 'succeeded' && finalAnswer;
+
   return (
     <div className="run-detail">
       <Link to="/" className="run-detail-back">
@@ -122,6 +129,13 @@ export default function RunDetail() {
           <span className="run-detail-cost">${run.total_cost.toFixed(4)}</span>
         </div>
       </header>
+
+      {hasFinalAnswer && (
+        <div className="run-detail-final-answer" role="region" aria-label="Final answer">
+          <h2 className="run-detail-final-answer-label">Answer</h2>
+          <p className="run-detail-final-answer-text">{finalAnswer}</p>
+        </div>
+      )}
 
       {!isRunning && run.reason && (
         <div className="run-detail-outcome" role="status">
@@ -185,6 +199,27 @@ export default function RunDetail() {
           border-radius: var(--radius-md);
           margin-bottom: var(--spacing-lg);
           border-left: 3px solid var(--color-primary);
+        }
+        .run-detail-final-answer {
+          padding: var(--spacing-xl);
+          background: var(--color-success-bg);
+          border-radius: var(--radius-lg);
+          margin-bottom: var(--spacing-lg);
+          border: 2px solid var(--color-success);
+          box-shadow: var(--shadow-md);
+        }
+        .run-detail-final-answer-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--color-success);
+          margin-bottom: var(--spacing-sm);
+        }
+        .run-detail-final-answer-text {
+          font-size: 1.25rem;
+          line-height: 1.6;
+          color: var(--color-text);
         }
         .run-detail-reason-code {
           display: inline-block;
