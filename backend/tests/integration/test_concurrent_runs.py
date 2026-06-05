@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.src.db.session import Base, get_run_by_id, get_session, get_steps_for_run
+from backend.src.services.agent_loop import run_agent_loop
 from backend.src.services.llm import MockLLM
 from backend.src.services.tool_registry import create_default_registry
-from backend.src.services.agent_loop import run_agent_loop
 
 
 @pytest.fixture(autouse=True)
@@ -121,6 +121,7 @@ async def test_concurrent_runs():
         async with get_session() as session:
             # Check total run count
             from sqlalchemy import func, select
+
             from backend.src.models.run import Run
 
             count_result = await session.execute(select(func.count()).select_from(Run))
