@@ -222,3 +222,109 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Constitution Principle II requires: unit tests for guards, tool retrieval, stuck detection, retry logic; one integration test for full run
+
+---
+
+## Phase 8: Spec Validation Fixes
+
+**Source**: `specs/001-agent-loop-api/fix-plan.md` — validation of backend implementation against spec documents
+
+### FIX-005: Add explicit `idx_steps_run_id` index
+
+**Spec**: `data-model.md` specifies `CREATE INDEX idx_steps_run_id ON steps(run_id)`.
+
+**Current behavior**: Only the composite `UNIQUE(run_id, step_number)` constraint exists in `backend/src/models/step.py`.
+
+**Fix**: In `backend/src/models/step.py`, add `Index("idx_steps_run_id", "run_id")` to `__table_args__`. Import `Index` from `sqlalchemy`. The `__table_args__` should become:
+```python
+__table_args__ = (
+    UniqueConstraint("run_id", "step_number"),
+    Index("idx_steps_run_id", "run_id"),
+)
+```
+
+- [X] T033 [FIX-005] Add `idx_steps_run_id` index to Step model in `backend/src/models/step.py`
+
+### FIX-002: Enable SQLite WAL mode for concurrent safety
+
+**Spec**: Plan calls for WAL mode; SC-004 requires 100 concurrent runs without data corruption.
+
+**Current behavior**: `session.py:20` creates engine without WAL mode.
+
+**Fix**: In `backend/src/db/session.py`, add an event listener on the engine to set `PRAGMA journal_mode=WAL` on each connection. Use SQLAlchemy's `event.listen` to attach a `connect` event that executes the pragma. Add this after engine creation in `get_engine()`:
+```python
+from sqlalchemy import event
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
+```
+
+- [X] T034 [FIX-002] Enable SQLite WAL mode in `backend/src/db/session.py` via event listener
+
+### FIX-001: RETRIES_EXHAUSTED should terminate the run
+
+**Spec**: US4, scenario 3 — "When the retry limit is reached, the run terminates with an error reason."
+
+**Current behavior**: `agent_loop.py:109` treats `RETRIES_EXHAUSTED` (recoverable=false) as a non-recoverable error, logs a warning, and continues the loop for the LLM to decide.
+
+**Fix**: In `backend/src/services/agent_loop.py`, after `runtime.execute()` (line 91), check if `result.get("error", {}).get("code") == "RETRIES_EXHAUSTED"`. If so, persist the step (lines 93-97 already do this), then call `await _finalize_run(run_id, "error")` and `return`. Add this check right after the `runtime.execute()` call but before the step persistence, or after step persistence. The cleanest approach: after line 97 (after step persistence), add:
+```python
+if result.get("error", {}).get("code") == "RETRIES_EXHAUSTED":
+    await _finalize_run(run_id, "error")
+    return
+```
+
+- [X] T035 [FIX-001] Terminate run on RETRIES_EXHAUSTED in `backend/src/services/agent_loop.py`
+
+### FIX-004: Fix stuck detection cost inconsistency
+
+**Current behavior**: `agent_loop.py:80` adds LLM call cost to `total_cost` before stuck check at line 85. If stuck triggers, the cost is counted but no step is persisted, creating a mismatch between `run.total_cost` and sum of step costs.
+
+**Fix**: In `backend/src/services/agent_loop.py`, move the cost accumulation (`total_cost += cost` at line 80) to after the stuck check (after line 88). This way, if stuck triggers, the cost is not accumulated (since no step will be persisted for it).
+
+- [X] T036 [FIX-004] Move cost accumulation after stuck check in `backend/src/services/agent_loop.py`
+
+### FIX-003: Remove test scaffolding from production endpoint
+
+**Current behavior**: `runs.py:110-116` has `_select_scenario()` that picks mock LLM scenarios based on request params. This is test-only logic in the production API.
+
+**Fix**: Remove `_select_scenario()` function, `SCENARIOS_DIR`, and `MockLLM` import from `backend/src/api/runs.py`. The POST /runs endpoint should not instantiate a MockLLM from scenario files. Instead, use a simple approach: create a `MockLLM` with an empty/default scenario or remove the scenario-based loading entirely. For now, replace the scenario loading with a direct MockLLM that uses a default scenario path passed as an environment variable or configuration. Remove lines 16 (`SCENARIOS_DIR`), lines 34-35 (scenario selection and MockLLM creation), and lines 110-116 (`_select_scenario`). Also remove the `from backend.src.services.llm import MockLLM` import (line 10). The endpoint should be simplified to not depend on mock scenarios.
+
+- [X] T037 [FIX-003] Remove test scaffolding from `backend/src/api/runs.py`
+
+### FIX-006: Add timeout integration test
+
+**Spec**: FR-008 — 60s wall-clock timeout.
+
+**Fix**: Add test in `backend/tests/integration/test_full_run.py` that mocks `asyncio.timeout` to fire sooner (or creates a scenario with enough tool calls). Verify run terminates with reason `timeout`.
+
+- [X] T038 [FIX-006] Add timeout integration test to `backend/tests/integration/test_full_run.py`
+
+### FIX-007: Add error termination integration test
+
+**Spec**: FR-015 — `error` termination reason for unhandled exceptions.
+
+**Fix**: Add test that simulates an unexpected exception in the agent loop (e.g., mock LLM raises). Verify run terminates with reason `error` and status `failed`.
+
+- [X] T039 [FIX-007] Add error termination integration test to `backend/tests/integration/test_full_run.py`
+
+### FIX-008: Add US4 tool error integration tests
+
+**Spec**: US4 scenarios — non-recoverable error surfacing, retry exhaustion termination.
+
+**Fix**: Add two tests in `backend/tests/integration/test_full_run.py`:
+1. `test_full_run_tool_error_nonrecoverable`: tool returns non-recoverable error, agent loop surfaces to LLM, LLM switches tool or gives final answer
+2. `test_full_run_tool_error_exhausted`: tool returns recoverable error 3 times, retries exhausted, run terminates with `error` reason (validates FIX-001)
+
+- [X] T040 [FIX-008] Add US4 tool error integration tests to `backend/tests/integration/test_full_run.py`
+
+### FIX-009: Add concurrent run safety test
+
+**Spec**: SC-004 — 100 concurrent runs without data corruption.
+
+**Fix**: Add test in `backend/tests/integration/test_concurrent_runs.py` that spawns 100 concurrent runs (via direct `run_agent_loop` calls or POST /runs). Verify all 100 runs complete with valid terminal states, no duplicate step numbers, no corrupted data.
+
+- [X] T041 [FIX-009] Add concurrent run safety test to `backend/tests/integration/test_concurrent_runs.py`
